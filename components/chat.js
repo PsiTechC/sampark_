@@ -172,39 +172,104 @@
 
 
 // pages/api/chat.js
-import pool from '../../lib/db';
+// import pool from '../../lib/db';
+// import axios from 'axios';
+
+// export default async function handler(req, res) {
+//   const { message, assistantId } = req.body;
+
+//   console.log(`Received message: ${message}, assistantId: ${assistantId}`);
+
+//   if (!message || !assistantId) {
+//     console.log('Message or assistantId missing');
+//     return res.status(400).json({ error: 'Message and assistantId are required' });
+//   }
+
+//   try {
+//     const result = await pool.query('SELECT * FROM assistants WHERE id = $1', [assistantId]);
+//     const assistant = result.rows[0];
+
+//     if (!assistant) {
+//       console.log('Assistant not found');
+//       return res.status(404).json({ error: 'Assistant not found' });
+//     }
+
+//     console.log(`Assistant found: ${JSON.stringify(assistant)}`);
+//     console.log('Sending request to OpenAI API');
+//     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+//       model: 'gpt-4',
+//       messages: [
+//         { role: 'system', content: assistant.instructions },
+//         { role: 'user', content: message }
+//       ],
+//       max_tokens: 150,
+//       temperature: assistant.temperature,
+//       top_p: assistant.top_p
+//     }, {
+//       headers: {
+//         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+//         'Content-Type': 'application/json'
+//       }
+//     });
+
+//     console.log('Response from OpenAI API:', response.data);
+//     const botMessage = response.data.choices[0].message.content.trim();
+
+//     console.log(`Bot message: ${botMessage}`);
+
+//     // Save user and bot messages to the database
+//     await pool.query(
+//       'INSERT INTO messages (assistant_id, sender, content) VALUES ($1, $2, $3)',
+//       [assistantId, 'user', message]
+//     );
+//     await pool.query(
+//       'INSERT INTO messages (assistant_id, sender, content) VALUES ($1, $2, $3)',
+//       [assistantId, 'assistant', botMessage]
+//     );
+
+//     res.status(200).json({ message: botMessage });
+//   } catch (error) {
+//     console.error('Error handling chat:', error);
+//     res.status(500).json({ error: 'Internal Server Error', details: error.message });
+//   }
+// }
+
+// chat.js (API endpoint)
+import { connectToDatabase } from '../../lib/db';
 import axios from 'axios';
+import { ObjectId } from 'mongodb';
 
 export default async function handler(req, res) {
   const { message, assistantId } = req.body;
 
-  console.log(`Received message: ${message}, assistantId: ${assistantId}`);
+  console.log('Received message:', message);  // Debug log
+  console.log('Received assistantId:', assistantId);  // Debug log
 
   if (!message || !assistantId) {
-    console.log('Message or assistantId missing');
     return res.status(400).json({ error: 'Message and assistantId are required' });
   }
 
   try {
-    const result = await pool.query('SELECT * FROM assistants WHERE id = $1', [assistantId]);
-    const assistant = result.rows[0];
+    console.log('Connecting to database...');
+    const db = await connectToDatabase();
+    console.log('Connected to database.');
+    const assistant = await db.collection('assistants').findOne({ _id: new ObjectId(assistantId) });
 
     if (!assistant) {
-      console.log('Assistant not found');
+      console.error('Assistant not found:', assistantId);
       return res.status(404).json({ error: 'Assistant not found' });
     }
 
-    console.log(`Assistant found: ${JSON.stringify(assistant)}`);
-    console.log('Sending request to OpenAI API');
+    console.log('Sending request to OpenAI API...');
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: 'gpt-4',
+      model: 'gpt-4-turbo',
       messages: [
         { role: 'system', content: assistant.instructions },
         { role: 'user', content: message }
       ],
-      max_tokens: 150,
-      temperature: assistant.temperature,
-      top_p: assistant.top_p
+      max_tokens: assistant.settings.maxTokens,
+      temperature: assistant.settings.temperature,
+      top_p: assistant.settings.topP,
     }, {
       headers: {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -212,20 +277,24 @@ export default async function handler(req, res) {
       }
     });
 
-    console.log('Response from OpenAI API:', response.data);
+    console.log('OpenAI API response received.');
     const botMessage = response.data.choices[0].message.content.trim();
 
-    console.log(`Bot message: ${botMessage}`);
-
-    // Save user and bot messages to the database
-    await pool.query(
-      'INSERT INTO messages (assistant_id, sender, content) VALUES ($1, $2, $3)',
-      [assistantId, 'user', message]
-    );
-    await pool.query(
-      'INSERT INTO messages (assistant_id, sender, content) VALUES ($1, $2, $3)',
-      [assistantId, 'assistant', botMessage]
-    );
+    console.log('Inserting messages into database...');
+    await db.collection('messages').insertMany([
+      {
+        assistantId: new ObjectId(assistantId),
+        sender: 'user',
+        content: message,
+        timestamp: new Date()
+      },
+      {
+        assistantId: new ObjectId(assistantId),
+        sender: 'assistant',
+        content: botMessage,
+        timestamp: new Date()
+      }
+    ]);
 
     res.status(200).json({ message: botMessage });
   } catch (error) {
@@ -233,3 +302,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 }
+

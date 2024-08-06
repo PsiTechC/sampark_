@@ -7,7 +7,7 @@ const Home = () => {
       <Navbar />
       <div className="p-4">
         <h1 className="text-2xl font-bold text-gray-800">Welcome to the Chatbot Assistant</h1>
-        {/* Add any additional content for the landing page here */}
+    
       </div>
     </div>
   );

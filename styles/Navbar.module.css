@@ -1,18 +1,19 @@
 /* styles/Navbar.module.css */
 .navbar {
-    background-color: #ffebbb; /* Navbar background color */
+    /* background-color: #ffebbb;  */
+    background-color: #f0f0f0; 
   }
   
   .nav-link {
-    background-color: #ffddaa; /* Button background color */
-    color: #000; /* Button text color */
-    padding: 0.5rem 1rem; /* Button padding */
-    border-radius: 0.25rem; /* Button border radius */
-    transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+    background-color: #e0e0e0; 
+    color: #000; 
+    padding: 0.5rem 1rem; 
+    border-radius: 0.25rem; 
+    transition: background-color 0.3s ease; 
   }
   
   .nav-link:hover {
-    background-color: #ffcc99; /* Button hover background color */
-    color: #fff; /* Button hover text color */
+    background-color: #c8c8c8; 
+    color: black; 
   }
-  
+    
