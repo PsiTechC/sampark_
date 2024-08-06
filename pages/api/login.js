@@ -1,8 +1,11 @@
 import { connectToDatabase } from '../../lib/db';
 import bcrypt from 'bcryptjs';
-import cookie from 'cookie';
 
 export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -21,14 +24,6 @@ export default async function handler(req, res) {
   if (!isValid) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
-
-  res.setHeader('Set-Cookie', cookie.serialize('role', user.role, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== 'development',
-    maxAge: 60 * 60 * 24, // 1 day
-    sameSite: 'strict',
-    path: '/'
-  }));
 
   res.status(200).json({ role: user.role });
 }

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 
-const Home = () => {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -13,6 +13,7 @@ const Home = () => {
     e.preventDefault();
     try {
       const response = await axios.post('/api/login', { email, password });
+      localStorage.setItem('role', response.data.role); // Store role in local storage
       if (response.data.role === 'superadmin') {
         router.push('/superadmin');
       } else if (response.data.role === 'client') {
@@ -25,7 +26,7 @@ const Home = () => {
 
   return (
     <div className="bg-gray-100 min-h-screen">
-      <Navbar />
+
       <div className="flex items-center justify-center min-h-screen">
         <form onSubmit={handleLogin} className="bg-white p-6 rounded shadow-md w-80">
           <h2 className="text-2xl font-bold mb-4">Login</h2>
@@ -62,4 +63,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Login;

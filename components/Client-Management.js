@@ -36,7 +36,19 @@ const ClientManagement = () => {
     <div className="bg-gray-100 min-h-screen">
       <Navbar />
       <div className="flex">
-        
+        <div className="w-64 bg-gray-800 text-white p-4">
+          <h2 className="text-2xl font-bold">Navigation</h2>
+          <ul className="mt-4">
+            <li>
+              <button
+                className="w-full text-left py-2 px-4 hover:bg-gray-700"
+                onClick={() => router.push('/superadmin-dashboard')}
+              >
+                Back to Dashboard
+              </button>
+            </li>
+          </ul>
+        </div>
         <div className="p-4 flex-grow">
           <h1 className="text-2xl font-bold text-gray-800">Client Management</h1>
           <div className="mt-4">
