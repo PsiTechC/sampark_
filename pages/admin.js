@@ -1198,8 +1198,6 @@
 
 
 //working without
-// i
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import AddAssistantModal from '../components/AddAssistantModal';
@@ -1230,22 +1228,6 @@ const Admin = () => {
     fetchAssistants();
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Enter' && showDeleteModal) {
-        handleDelete(deleteAssistantId);
-      }
-    };
-
-    if (showDeleteModal) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showDeleteModal, deleteAssistantId]);
-
   const handleSave = (newAssistant) => {
     setAssistants((prev) => [...prev, newAssistant]);
   };
@@ -1261,7 +1243,6 @@ const Admin = () => {
       await axios.delete(`/api/assistants?id=${id}`);
       setAssistants((prev) => prev.filter((assistant) => assistant._id !== id));
       setShowDeleteModal(false);
-      window.location.reload(); // Refresh the browser after deletion
     } catch (error) {
       console.error('Error deleting assistant:', error);
     }
