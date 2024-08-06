@@ -1834,7 +1834,10 @@
 
 
 
-import { useState } from 'react';
+// 
+
+
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function AddAssistantModal({ onClose, onSave }) {
@@ -1855,6 +1858,19 @@ export default function AddAssistantModal({ onClose, onSave }) {
   const [assistantShowMsg, setAssistantShowMsg] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [selectedFiles, setSelectedFiles] = useState([]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        handleSubmit(e);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [name, instructions, model, fileSearch, codeInterpreter, temperature, topP, maxTokens, stopSequences, frequencyPenalty, presencePenalty, voice, phoneNumber, country, assistantShowMsg, selectedFiles]);
 
   const handleFileChange = (e) => {
     setSelectedFiles(Array.from(e.target.files));
