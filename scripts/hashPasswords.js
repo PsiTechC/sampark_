@@ -1,43 +1,24 @@
-const { MongoClient } = require('mongodb');
+const { connectToDatabase } = require('../lib/db'); // Adjust the import path if necessary
 const bcrypt = require('bcryptjs');
-require('dotenv').config({ path: './.env.local' });
+const dotenv = require('dotenv');
+const path = require('path');
 
-async function main() {
-  const uri = process.env.MONGODB_URI;
+// Explicitly load .env.local file
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
-  if (!uri) {
-    throw new Error('MONGODB_URI is not defined in the environment variables');
-  }
+async function createSuperAdmin() {
+  const { db } = await connectToDatabase(); // Destructure to get the `db` object
+  const email = 'kale***REMOVED***980@gmail.com';
+  const password = '***REMOVED***';
+  const hashedPassword = bcrypt.hashSync(password, 10);
 
-  const client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+  await db.collection('users').insertOne({
+    email,
+    password: hashedPassword,
+    role: 'superadmin', // Make sure the role matches what your login check expects
   });
 
-  try {
-    await client.connect();
-    const database = client.db('***REMOVED***');
-    const users = database.collection('users');
-
-    // Define the users to be added
-    const usersToAdd = [
-      {
-        email: 'superadmin@example.com',
-        password: 'new',
-        role: 'superadmin'
-      },
-      
-    ];
-
-    for (const user of usersToAdd) {
-      const hashedPassword = await bcrypt.hash(user.password, 10);
-      await users.insertOne({ email: user.email, password: hashedPassword, role: user.role });
-    }
-
-    console.log('Users have been added successfully.');
-  } finally {
-    await client.close();
-  }
+  console.log('Super admin user created');
 }
 
-main().catch(console.error);
+createSuperAdmin().catch(console.error);

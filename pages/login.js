@@ -1,7 +1,8 @@
+// pages/login.js
+
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
-import Navbar from '../components/Navbar';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -9,56 +10,92 @@ const Login = () => {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     try {
       const response = await axios.post('/api/login', { email, password });
-      localStorage.setItem('role', response.data.role); // Store role in local storage
-      if (response.data.role === 'superadmin') {
-        router.push('/superadmin');
-      } else if (response.data.role === 'client') {
-        router.push('/clients');
+      if (response.status === 200) {
+        // Store the token in localStorage
+        localStorage.setItem('token', response.data.token);
+        // Redirect to the super admin dashboard upon successful login
+        router.push('/superadmin-dashboard');
       }
-    } catch (err) {
-      setError('Invalid email or password');
+    } catch (error) {
+      setError(error.response?.data?.message || 'Invalid email or password');
     }
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen">
+    <div className="login-container">
+      <form onSubmit={handleSubmit} className="login-form">
+        <h2>Login</h2>
+        {error && <p className="error">{error}</p>}
+        <div className="form-group">
+          <label>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit">Login</button>
+      </form>
 
-      <div className="flex items-center justify-center min-h-screen">
-        <form onSubmit={handleLogin} className="bg-white p-6 rounded shadow-md w-80">
-          <h2 className="text-2xl font-bold mb-4">Login</h2>
-          {error && <p className="text-red-500 mb-4">{error}</p>}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Login
-          </button>
-        </form>
-      </div>
+      <style jsx>{`
+        .login-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          background-color: #f7f7f7;
+        }
+        .login-form {
+          background: white;
+          padding: 2rem;
+          border-radius: 8px;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+          margin-bottom: 1rem;
+        }
+        label {
+          display: block;
+          margin-bottom: 0.5rem;
+        }
+        input {
+          width: 100%;
+          padding: 0.5rem;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+        }
+        button {
+          width: 100%;
+          padding: 0.75rem;
+          border: none;
+          border-radius: 4px;
+          background-color: #0070f3;
+          color: white;
+          font-size: 1rem;
+          cursor: pointer;
+        }
+        button:hover {
+          background-color: #005bb5;
+        }
+        .error {
+          color: red;
+          margin-bottom: 1rem;
+        }
+      `}</style>
     </div>
   );
 };
