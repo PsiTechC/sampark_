@@ -17,8 +17,13 @@ const Login = () => {
       if (response.status === 200) {
         // Store the token in localStorage
         localStorage.setItem('token', response.data.token);
-        // Redirect to the super admin dashboard upon successful login
-        router.push('/superadmin-dashboard');
+
+        // Redirect based on role
+        if (response.data.role === 'superadmin') {
+          router.push('/superadmin-dashboard');
+        } else if (response.data.role === 'client') {
+          router.push(`/client-dashboard/${response.data.clientId}`);
+        }
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Invalid email or password');
@@ -101,3 +106,4 @@ const Login = () => {
 };
 
 export default Login;
+    
