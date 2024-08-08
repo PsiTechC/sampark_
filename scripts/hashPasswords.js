@@ -23,7 +23,7 @@ async function main() {
     const usersToAdd = [
       {
         email: 'superadmin@example.com',
-        password: 'new',
+        password: 'new2',
         role: 'superadmin'
       },
       
