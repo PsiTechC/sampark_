@@ -369,7 +369,7 @@
 //   }
 // }
 
-
+//bot2
 import { connectToDatabase } from '../../lib/db';
 import OpenAI from 'openai';
 import twilio from 'twilio';
@@ -382,8 +382,6 @@ const openai = new OpenAI({
 
 export default async function handler(req, res) {
   console.log('twilio-gather called');
-  console.log('Request body:', req.body);
-  console.log('Request query:', req.query);
 
   const { SpeechResult } = req.body;
   const { assistantId } = req.query;
