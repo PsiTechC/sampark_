@@ -1,39 +1,8 @@
-// const path = require('path');
-
-// module.exports = {
-//   reactStrictMode: true,
-//   webpack(config) {
-//     config.module.rules.push({
-//       test: /\.(png|jpe?g|gif|svg|ico)$/i,
-//       use: [
-//         {
-//           loader: 'file-loader',
-//           options: {
-//             publicPath: '/_next/static/images',
-//             outputPath: 'static/images',
-//             name: '[name].[hash].[ext]',
-//           },
-//         },
-//       ],
-//     });
-
-//     return config;
-//   },
-//   async rewrites() {
-//     return [
-//       {
-//         source: '/uploads/:path*',
-//         destination: '/_next/static/images/:path*',
-//       },
-//     ];
-//   },
-// };
-
 const path = require('path');
 
 module.exports = {
   reactStrictMode: true,
-  webpack(config) {
+  webpack(config, { isServer }) {
     config.module.rules.push({
       test: /\.(png|jpe?g|gif|svg|ico)$/i,
       use: [
@@ -48,6 +17,16 @@ module.exports = {
       ],
     });
 
+    // Add fallbacks for Node.js core modules
+    if (!isServer) {
+      config.resolve.fallback = {
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+      };
+    }
+
     return config;
   },
   async rewrites() {
@@ -59,4 +38,3 @@ module.exports = {
     ];
   },
 };
-
