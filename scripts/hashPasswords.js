@@ -18,7 +18,34 @@ async function createSuperAdmin() {
     role: 'superadmin', // Make sure the role matches what your login check expects
   });
 
+<<<<<<< HEAD
+  try {
+    await client.connect();
+    const database = client.db('***REMOVED***');
+    const users = database.collection('users');
+
+    // Define the users to be added
+    const usersToAdd = [
+      {
+        email: 'superadmin@example.com',
+        password: 'new2',
+        role: 'superadmin'
+      },
+      
+    ];
+
+    for (const user of usersToAdd) {
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      await users.insertOne({ email: user.email, password: hashedPassword, role: user.role });
+    }
+
+    console.log('Users have been added successfully.');
+  } finally {
+    await client.close();
+  }
+=======
   console.log('Super admin user created');
+>>>>>>> origin/main
 }
 
 createSuperAdmin().catch(console.error);

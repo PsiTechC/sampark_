@@ -1,11 +1,18 @@
-import nextConnect from 'next-connect';
+// import nextConnect from 'next-connect';
 
-console.log('nextConnect:', nextConnect); // Debugging line
+// console.log('nextConnect:', nextConnect); // Debugging line
 
-const handler = nextConnect();
+// const handler = nextConnect();
 
-handler.get((req, res) => {
-  res.json({ message: 'Next-connect is working!' });
-});
+// handler.get((req, res) => {
+//   res.json({ message: 'Next-connect is working!' });
+// });
 
-export default handler;
+// export default handler;
+// pages/api/test.js
+
+// pages/api/test.js
+export default function handler(req, res) {
+  console.log('Test endpoint hit');
+  res.status(200).json({ message: 'Test endpoint working' });
+}
