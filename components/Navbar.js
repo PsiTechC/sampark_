@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import styles from '../styles/Navbar.module.css';
-import dashboard from '../pages/dashboard';
+//import dashboard from '../pages/dashboard';
 
 const Navbar = () =>
    {
@@ -36,7 +36,7 @@ const Navbar = () =>
           <div className="text-black dark:text-black text-3xl font-bold ml-5">Sampark AI</div>
         </div>
         <div className="space-x-4 flex items-center mr-3">
-          <Link href="/dashboard" className={`text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 ${styles['nav-link']}`}>Dashboard</Link>
+
           <Link href="/admin" className={`text-black dark:text-black hover:text-gray-700 dark:hover:text-gray-300 ${styles['nav-link']}`}>Admin</Link>
           <Link href="/clients" className={`text-black dark:text-black hover:text-gray-700 dark:hover:text-gray-300 ${styles['nav-link']}`}>Clients</Link>
           {/* <button onClick={toggleDarkMode} className="text-black dark:text-white">
