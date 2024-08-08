@@ -222,11 +222,10 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = new twilio(accountSid, authToken);
 
 export default async function handler(req, res) {
-  console.log('twilio-webhook called');
-
   if (req.method === 'POST') {
     const { From, To } = req.body;
 
+    console.log('twilio calling');
     console.log(`Incoming call from ${From} to ${To}`);
 
     try {
@@ -234,7 +233,6 @@ export default async function handler(req, res) {
       const assistant = await db.collection('assistants').findOne({ phoneNumber: To });
 
       if (!assistant) {
-        console.log('Assistant not found for number:', To);
         const twiml = new twilio.twiml.VoiceResponse();
         twiml.say('Sorry, no assistant is available for this number.');
         res.setHeader('Content-Type', 'text/xml');
@@ -243,8 +241,6 @@ export default async function handler(req, res) {
 
       const twiml = new twilio.twiml.VoiceResponse();
       const gatherUrl = `https://${req.headers.host}/api/twilio-gather?assistantId=${assistant._id}`;
-
-      console.log(`Gather URL: ${gatherUrl}`);
 
       twiml.gather({
         input: 'speech',
@@ -263,7 +259,6 @@ export default async function handler(req, res) {
       res.setHeader('Content-Type', 'text/xml');
       res.send(twiml.toString());
     } catch (error) {
-      console.error('Error handling incoming call:', error);
       res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   } else {
