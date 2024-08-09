@@ -18,8 +18,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const db = await connectToDatabase();
-    const assistant = await db.collection('assistants').findOne({ _id: new ObjectId(assistantId) });
+    const { db } = await connectToDatabase(); // Destructure to get db object
+    const collection = db.collection('assistants');
+
+    const assistant = await collection.findOne({ _id: new ObjectId(assistantId) });
 
     if (!assistant) {
       return res.status(404).json({ error: 'Assistant not found' });

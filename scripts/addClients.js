@@ -7,8 +7,8 @@ async function addClients() {
   const { db } = await connectToDatabase();
 
   const clients = [
-    { name: 'Client 1', email: 'client1@example.com', password: 'password1', role: 'client' },
-    { name: 'Client 2', email: 'client2@example.com', password: 'password2', role: 'client' },
+    { name: 'Client 3', email: 'client3@example.com', password: 'password3', role: 'client' },
+    { name: 'Client 4', email: 'client4@example.com', password: 'password4', role: 'client' },
     // Add more clients as needed
   ];
 

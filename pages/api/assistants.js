@@ -26,7 +26,7 @@ export const config = {
 };
 
 const handler = async (req, res) => {
-  const db = await connectToDatabase();
+  const { db } = await connectToDatabase();
 
   if (req.method === 'POST') {
     upload.array('images')(req, res, async (err) => {
@@ -119,7 +119,7 @@ const handler = async (req, res) => {
           }));
         }
 
-        const result = await db.collection('assistants').updateOne(
+        await db.collection('assistants').updateOne(
           { _id: new ObjectId(id) },
           {
             $set: {
@@ -133,7 +133,7 @@ const handler = async (req, res) => {
         res.status(200).json({ message: 'Assistant updated successfully' });
       } catch (error) {
         console.error('Error updating assistant:', error);
-        res.status500.json({ error: 'Internal Server Error', details: error.message });
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
       }
     });
   } else {
