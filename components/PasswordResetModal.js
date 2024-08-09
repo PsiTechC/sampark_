@@ -1,21 +1,34 @@
-// components/PasswordResetModal.js
-
+// PasswordResetModal.js
 import { useState } from 'react';
 
-const PasswordResetModal = ({ isOpen, onClose, onSave }) => {
+const PasswordResetModal = ({ isOpen, onClose, onSave, clientId }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log("Form submitted");
+
     if (password !== confirmPassword) {
       alert('Passwords do not match');
       return;
     }
+
+    if (!clientId) {
+      console.error("Client ID is undefined");
+      return;
+    }
+
+    console.log("Client ID:", clientId);
+    console.log("New Password:", password);
+
     onSave(password);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log("Modal is not open, returning null");
+    return null;
+  }
 
   return (
     <div className="modal">
@@ -24,11 +37,21 @@ const PasswordResetModal = ({ isOpen, onClose, onSave }) => {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>New Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
           <div className="form-group">
             <label>Confirm Password</label>
-            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
           </div>
           <button type="submit">Save</button>
           <button type="button" onClick={onClose}>Cancel</button>
