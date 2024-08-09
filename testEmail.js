@@ -24,8 +24,8 @@ async function sendTestEmail() {
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: '',
-    subject: 'Welcome to SamparkAI!',
+    to: 'sanketkkapoor07@gmail.com',
+    subject: 'Welcome to SamparkAI! sanket',
     text: `Dear User,
     
 Welcome to SamparkAI! We are thrilled to have you on board.

@@ -1,6 +1,4 @@
-// pages/api/login.js
-
-import { connectToDatabase } from '../../lib/db';
+import { connectToDatabase } from '../../lib/db';  // Server-side only
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -13,25 +11,30 @@ export default async function handler(req, res) {
 
   try {
     const { db } = await connectToDatabase();
-    const user = await db.collection('users').findOne({ email });
+
+    let user = await db.collection('users').findOne({ email });
 
     if (!user) {
-      console.log('User not found');
+      user = await db.collection('clients').findOne({ email });
+    }
+
+    if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      console.log('Password does not match');
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Generate a token
-    const token = jwt.sign({ email: user.email, role: user.role, clientId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const tokenPayload = { email: user.email, clientId: user._id, role: user.role || 'client' };
 
-    // Respond with the token and user role
-    res.status(200).json({ token, role: user.role, clientId: user._id });
+    res.status(200).json({
+      token: jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' }),
+      role: user.role || 'client',
+      clientId: user._id,
+    });
   } catch (error) {
     console.error('Internal server error:', error);
     res.status(500).json({ message: 'Internal server error' });

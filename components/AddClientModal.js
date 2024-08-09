@@ -30,6 +30,7 @@ const AddClientModal = ({ isOpen, onClose, onSave }) => {
       <div className="modal-content">
         <h2>Add Client</h2>
         <form onSubmit={handleSubmit}>
+          {/* Form Fields */}
           <div className="form-group">
             <label>Name</label>
             <input type="text" name="name" value={client.name} onChange={handleChange} required />
