@@ -1,32 +1,41 @@
-// PasswordResetModal.js
-import { useState } from 'react';
+
+
+
+
+import { useState, useEffect } from 'react';
 
 const PasswordResetModal = ({ isOpen, onClose, onSave, clientId }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    console.log('PasswordResetModal received clientId:', clientId);
+  }, [clientId]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted");
-
-    if (password !== confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
 
     if (!clientId) {
-      console.error("Client ID is undefined");
+      setError('Client ID is missing.');
+      return;
+  }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
-    console.log("Client ID:", clientId);
-    console.log("New Password:", password);
+    setError('');  // Clear any previous errors
 
-    onSave(password);
+    try {
+      await onSave(password);
+    } catch (err) {
+      setError('Failed to reset password');
+    }
   };
 
   if (!isOpen) {
-    console.log("Modal is not open, returning null");
     return null;
   }
 
@@ -34,6 +43,7 @@ const PasswordResetModal = ({ isOpen, onClose, onSave, clientId }) => {
     <div className="modal">
       <div className="modal-content">
         <h2>Change Password</h2>
+        {error && <p className="error text-red-500">{error}</p>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>New Password</label>
@@ -42,6 +52,7 @@ const PasswordResetModal = ({ isOpen, onClose, onSave, clientId }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="form-group">
@@ -51,55 +62,45 @@ const PasswordResetModal = ({ isOpen, onClose, onSave, clientId }) => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button type="submit">Save</button>
-          <button type="button" onClick={onClose}>Cancel</button>
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 transition duration-300"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full bg-gray-500 text-white py-3 rounded-md hover:bg-gray-600 transition duration-300 mt-2"
+          >
+            Cancel
+          </button>
         </form>
       </div>
       <style jsx>{`
         .modal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
           display: flex;
           justify-content: center;
           align-items: center;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
         }
         .modal-content {
           background: white;
-          padding: 2rem;
-          border-radius: 8px;
-          width: 400px;
-          max-width: 100%;
-        }
-        .form-group {
-          margin-bottom: 1rem;
-        }
-        label {
-          display: block;
-          margin-bottom: 0.5rem;
-        }
-        input {
+          padding: 20px;
+          border-radius: 5px;
           width: 100%;
-          padding: 0.5rem;
-          border: 1px solid #ccc;
-          border-radius: 4px;
+          max-width: 400px;
         }
-        button {
-          margin-right: 1rem;
-          padding: 0.5rem 1rem;
-          border: none;
-          border-radius: 4px;
-          background: #0070f3;
-          color: white;
-          cursor: pointer;
-        }
-        button[type="button"] {
-          background: #ccc;
+        .error {
+          color: red;
         }
       `}</style>
     </div>
