@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es6",  // or es2017, es2020
+    "target": "es6",  
     "paths": {
       "@/*": ["./*"]
     }
