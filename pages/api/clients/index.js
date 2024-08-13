@@ -44,8 +44,6 @@ export default async function handler(req, res) {
         tls: {
           rejectUnauthorized: false, // Disable SSL validation
         },
-
-
       });
 
       // Email options

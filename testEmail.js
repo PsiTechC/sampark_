@@ -24,20 +24,18 @@ async function sendTestEmail() {
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: 'sanketkkapoor07@gmail.com',
-    subject: 'Welcome to SamparkAI! sanket',
-    text: `Dear User,
+    to: 'shantman011@gmail.com',
+    subject: 'Welcome to SamparkAI!',
+    text: `Dear Shantanu Deshmukh,
     
-Welcome to SamparkAI! We are thrilled to have you on board.
-    
-At SamparkAI, we strive to provide the best AI-powered solutions to enhance your productivity and streamline your operations. We believe in the power of technology to transform lives and businesses, and we are excited to have you join us on this journey.   
-Should you have any questions or need assistance, please do not hesitate to reach out to our support team. We are here to help you every step of the way.   
-Thank you for choosing SamparkAI. We look forward to a successful and productive partnership.
+I hope this message finds you well.
 
-  ( this is a test email)
+I am writing to request the purchase of a new monitor for our software development team. Given the nature of our work, a high-resolution monitor will significantly enhance our productivity by providing better visibility and workspace for coding and testing.
+
+I would appreciate your approval to proceed with this order at your earliest convenience. Here is the link https://www.lg.com/in/monitors/gaming/27gl650f-b/?srsltid=AfmBOoofNomdrPhjRD28EL4HLXejg-Tmp8dywCVRKVpYU5XdxrE7UQRM
     
 Best regards,
-The SamparkAI Team`,
+The SamparkAI Software Development Team`,
   };
 
   
