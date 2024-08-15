@@ -1,0 +1,25 @@
+<!-- <svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    width="400px"
+    height="400px"
+    viewBox="0 0 24 24"
+    fill="none">
+    <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M8 2H6.5C5.67157 2 5 2.67157 5 3.5V20.5C5 21.3284 5.67157 22 6.5 22H8V2ZM10 22H14V2H10V22ZM16 22V2H17.5C18.3284 2 19 2.67157 19 3.5V20.5C19 21.3284 18.3284 22 17.5 22H16ZM12 13C11.4477 13 11 12.5523 11 12C11 11.4477 11.4477 11 12 11C12.5523 11 13 11.4477 13 12C13 12.5523 12.5523 13 12 13Z"
+        fill="#4A5568" />
+</svg> -->
+
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="400px" height="400px">
+  <rect width="40" height="60" x="12" y="2" fill="#b5c0d0" />
+  <rect width="36" height="56" x="14" y="4" fill="#e0e7ef" />
+  <rect width="8" height="12" x="26" y="6" fill="#b5c0d0" />
+  <rect width="8" height="12" x="26" y="20" fill="#b5c0d0" />
+  <rect width="8" height="12" x="26" y="34" fill="#b5c0d0" />
+  <rect width="8" height="12" x="26" y="48" fill="#b5c0d0" />
+  <circle cx="46" cy="32" r="3" fill="#f2c94c" />
+  <circle cx="46" cy="32" r="2" fill="#f2994a" />
+</svg>

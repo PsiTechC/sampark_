@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/sidebar';
 import AddClientModal from '../components/AddClientModal';
 
 const ClientManagement = () => {
@@ -38,29 +38,38 @@ const ClientManagement = () => {
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <Navbar />
-      <div className="flex">
-        <div className="p-4 flex-grow">
-          <h1 className="text-2xl font-bold text-gray-800">Client Management</h1>
-          <div className="mt-4">
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={() => setIsModalOpen(true)}
-            >
-              Add Client
-            </button>
-          </div>
-          <div className="mt-4">
-            <h2 className="text-xl font-bold">Existing Clients</h2>
-            <ul>
-              {clients.map((client) => (
-                <li key={client.id} className="border p-2 mt-2">
-                  {client.name} - {client.phone} - {client.licenseValidFrom} - {client.assistant}
-                </li>
-              ))}
-            </ul>
-          </div>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="flex-grow p-8 ml-56"> {/* Adjusted the margin-left */}
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Client Management</h1>
+        <div className="mb-6">
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            onClick={() => setIsModalOpen(true)}
+          >
+            Add Client
+          </button>
+        </div>
+        <div className="bg-white p-6 rounded shadow">
+          <h2 className="text-2xl font-bold mb-4">Existing Clients</h2>
+          <ul>
+            {clients.map((client) => (
+              <li key={client.id} className="border-b py-4">
+                <div className="flex justify-between">
+                  <div>
+                    <p className="text-lg font-semibold">{client.name}</p>
+                    <p className="text-gray-600">Email: {client.email}</p>
+                    <p className="text-gray-600">Phone: {client.phone}</p>
+                    <p className="text-gray-600">Assistant: {client.assistant}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-gray-600">License Valid From: {client.licenseValidFrom}</p>
+                    <p className="text-gray-600">Purpose: {client.purpose}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
       <AddClientModal
