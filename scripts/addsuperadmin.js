@@ -10,7 +10,7 @@ const { connectToDatabase } = require('../lib/db');
 async function createSuperAdmin() {
   try {
     const { db } = await connectToDatabase(); // Destructure to get the `db` object
-    const email = 'sanketkkapoor07@gmail.com';
+    const email = 'kale***REMOVED***980@gmail.com';
     const password = 'sanket'; // Plaintext password
 
     // Hash the password before storing it in the database
