@@ -1,5 +1,3 @@
-
-
 // import { connectToDatabase } from '../../lib/db';
 // import twilio from 'twilio';
 // import { ObjectId } from 'mongodb';
@@ -16,7 +14,7 @@
 //     console.log(`Incoming call from ${From} to ${To}`);
 
 //     try {
-//       const { db } = await connectToDatabase(); // Destructure to get db object
+//       const { db } = await connectToDatabase(); 
 //       const assistant = await db.collection('assistants').findOne({ phoneNumber: To });
 
 //       if (!assistant) {
@@ -55,6 +53,84 @@
 // }
 
 
+
+// import { connectToDatabase } from '../../lib/db';
+// import twilio from 'twilio';
+// import { ObjectId } from 'mongodb';
+
+// export default async function handler(req, res) {
+//   if (req.method === 'POST') {
+//     const { From, To } = req.body;
+
+//     console.log('Webhook received. From:', From, 'To:', To);
+
+//     try {
+//       const { db } = await connectToDatabase();
+//       console.log('Connected to database:', db.databaseName);
+
+//       const assistant = await db.collection('assistants').findOne({ phoneNumber: From });
+
+//       if (!assistant) {
+//         console.log('No assistant found for phoneNumber:', To);
+//         const twiml = new twilio.twiml.VoiceResponse();
+//         twiml.say('Sorry, no assistant is available for this number.');
+//         res.setHeader('Content-Type', 'text/xml');
+//         return res.send(twiml.toString());
+//       }
+
+//       const accountSid = 'AC47e8fc4a96506ab035d57bf787730ac9';
+//       const authToken = "e5e335b79278d226f0fbbc36b75e0575";
+//       const client = twilio(accountSid, authToken);
+
+//       const fromPhoneNumber = '+15417255475';  // Ensure this is a string
+//       const toPhoneNumber = '+919131296862';  // Example Indian phone number in E.164 format
+
+//       const twimlMessage = `
+//       <Response>
+//         <Say voices="man" language="hi-IN">
+//         "महाडच्या प्रगतीसाठी भारत गोगावले यांना साथ द्या"
+//         </Say>
+//         <Gather input="speech" action="https://${req.headers.host}/api/twilio-gather?assistantId=${assistant._id}" method="POST">
+//           <Say voice="man" language="hi-IN">Please say something after the beep.</Say>
+//         </Gather>
+//       </Response>
+//       `;
+
+//       client.calls
+//         .create({
+//           to: toPhoneNumber,
+//           from: fromPhoneNumber,
+//           twiml: twimlMessage,
+//         })
+//         .then((call) => {
+//           console.log(`Call initiated with SID: ${call.sid}`);
+//           // Save call start message
+//           db.collection('messages').insertOne({
+//             assistantId: new ObjectId(assistant._id),
+//             sender: 'system',
+//             content: `Call started with ${From}`,
+//             timestamp: new Date(),
+//           });
+//           res.status(200).json({ message: 'Call initiated successfully', callSid: call.sid });
+//         })
+//         .catch((error) => {
+//           console.error('Error making call:', error);
+//           res.status(500).json({ error: 'Failed to initiate call', details: error.message });
+//         });
+
+//     } catch (error) {
+//       console.error('Error during webhook processing:', error);
+//       res.status(500).json({ error: 'Internal Server Error', details: error.message });
+//     }
+//   } else {
+//     res.setHeader('Allow', ['POST']);
+//     res.status(405).end(`Method ${req.method} Not Allowed`);
+//   }
+// }
+
+
+
+
 import { connectToDatabase } from '../../lib/db';
 import twilio from 'twilio';
 import { ObjectId } from 'mongodb';
@@ -65,14 +141,15 @@ const client = new twilio(accountSid, authToken);
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { From, To } = req.body;
+    const { From, To, Direction } = req.body;
 
     console.log('twilio calling');
-    console.log(`Incoming call from ${From} to ${To}`);
+    console.log(`Call from ${From} to ${To}, Direction: ${Direction}`);
 
     try {
-      const { db } = await connectToDatabase(); // Destructure to get db object
-      const assistant = await db.collection('assistants').findOne({ phoneNumber: To });
+      const { db } = await connectToDatabase();
+      const phoneNumberKey = Direction === 'inbound' ? To : From;
+      const assistant = await db.collection('assistants').findOne({ phoneNumber: phoneNumberKey });
 
       if (!assistant) {
         const twiml = new twilio.twiml.VoiceResponse();
@@ -83,26 +160,17 @@ export default async function handler(req, res) {
 
       const twiml = new twilio.twiml.VoiceResponse();
       const gatherUrl = `https://${req.headers.host}/api/twilio-gather?assistantId=${assistant._id}`;
-
-      // Added campaign message about Bharat Gogawale
-      twiml.say({ voice: 'alice' }, 
-        `Bharat Gogawale has transformed Mahad through dedicated efforts in agriculture, infrastructure, and healthcare. 
-        He’s enhanced road connectivity, provided clean water, and supported farmers with vital subsidies. 
-        His focus on education and social welfare, including affordable housing and women empowerment, has uplifted the community. 
-        Vote for proven leadership that puts Mahad first!`
-      );
-
       twiml.gather({
         input: 'speech',
         action: gatherUrl,
         method: 'POST',
-      }).say({ voice: 'alice' }, `Hello, you are connected to ${assistant.name}. How can I assist you today?`);
+      }).say({ voice: 'man' }, `Hello, you are connected to ${assistant.name}. How can I assist you today?`);
 
       // Save call start message
       await db.collection('messages').insertOne({
         assistantId: new ObjectId(assistant._id),
         sender: 'system',
-        content: `call started with ${From}`,
+        content: `Call started with ${From}, direction: ${Direction}`,
         timestamp: new Date(),
       });
 
@@ -116,94 +184,3 @@ export default async function handler(req, res) {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
-
-
-
-// const express = require('express');
-// const axios = require('axios');
-// require('dotenv').config();
-
-// const app = express();
-// app.use(express.json());
-
-// const SMARTFLO_API_KEY = process.env.SMARTFLO_API_KEY;
-// const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-// app.post('/incoming-call', async (req, res) => {
-//     const { caller, called_number } = req.body;
-
-//     try {
-//         console.log(`Incoming call from ${caller} to ${called_number}`);
-
-//         // Fetch the assistant details from your database based on the number
-//         const db = await connectToDatabase();
-//         const assistant = await db.collection('assistants').findOne({ phoneNumber: called_number });
-
-//         if (!assistant) {
-//             return res.status(404).send('Assistant not found');
-//         }
-
-//         // Automatically answer and handle the call with IVR
-//         const ivrResponse = await axios.post(
-//             'https://api-smartflo.tatateleservices.com/v1/ivr',
-//             {
-//                 // Auto-answer logic with the assistant's name
-//                 greeting: `Hello, this is ${assistant.name}. How can I assist you today?`,
-//                 action: {
-//                     type: "gather",
-//                     input: "speech",
-//                     next_action: "/process-speech"
-//                 }
-//             },
-//             {
-//                 headers: {
-//                     'Authorization': `Bearer ${SMARTFLO_API_KEY}`,
-//                     'Content-Type': 'application/json'
-//                 }
-//             }
-//         );
-
-//         console.log('IVR flow triggered:', ivrResponse.data);
-//         res.status(200).send('Call handled');
-//     } catch (error) {
-//         console.error('Error handling call:', error);
-//         res.status(500).send('Error handling call');
-//     }
-// });
-
-// // Endpoint to process speech input
-// app.post('/process-speech', async (req, res) => {
-//     const { speech_text } = req.body;
-
-//     try {
-//         console.log(`Received speech: ${speech_text}`);
-        
-//         const openaiResponse = await axios.post(
-//             'https://api.openai.com/v1/completions',
-//             {
-//                 model: 'text-davinci-003',
-//                 prompt: `User: ${speech_text}\nAssistant:`,
-//                 max_tokens: 150,
-//                 temperature: 0.7,
-//             },
-//             {
-//                 headers: {
-//                     'Authorization': `Bearer ${OPENAI_API_KEY}`,
-//                     'Content-Type': 'application/json',
-//                 }
-//             }
-//         );
-
-//         const aiResponse = openaiResponse.data.choices[0].text.trim();
-//         console.log('AI Response:', aiResponse);
-
-//         res.status(200).json({ message: aiResponse });
-//     } catch (error) {
-//         console.error('Error processing speech:', error);
-//         res.status(500).send('Error processing speech');
-//     }
-// });
-
-// app.listen(3000, () => {
-//     console.log('Server running on port 3000');
-// });

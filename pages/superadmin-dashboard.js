@@ -107,7 +107,7 @@
 
 
 
-// pages/super-admin-dashboard.js
+// C:\Users\***REMOVED*** kale\botGIT\pages\superadmin-dashboard.js
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Sidebar from '../components/sidebar';
