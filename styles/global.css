@@ -149,23 +149,8 @@ body {
 
 .parallax-section {
   background-attachment: fixed;
+  background-color: white; /* White background for each section */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-}
-
-.about-parallax {
-  background: linear-gradient(to right, #f0f4f8, #d9e2ec); /* Light gradient for about section */
-}
-
-.services-parallax {
-  background: linear-gradient(to right, #f8fafc, #e2e8f0); /* Light gradient for services section */
-}
-
-.features-parallax {
-  background: linear-gradient(to right, #edf2f7, #cbd5e0); /* Light gradient for features section */
-}
-
-.contact-parallax {
-  background: linear-gradient(to right, #e6fffa, #b2f5ea); /* Light gradient for contact section */
 }
