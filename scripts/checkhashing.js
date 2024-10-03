@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 
-const providedPassword = 'jyoti'; // Replace with the actual password user is entering
-const storedHash = '$2a$10$1iAh4mgm8JUNeUN5H6GHXeqHtL241Y9wL/YO4N1s6TKPuoCYdSiAm'; // Replace with the actual hash
+const providedPassword = 'Admin@1234'; // Replace with the actual password user is entering
+const storedHash = '$2a$10$nTBg/FV37VIvuTp8kVowaOW5UAXJFZhcbFeHVDTTId3mB222F91xy'; // Replace with the actual hash
 
 bcrypt.compare(providedPassword, storedHash, (err, result) => {
   if (err) {

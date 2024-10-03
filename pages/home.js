@@ -302,13 +302,13 @@ export default function Home() {
               <Link href="#support" className="hover:text-blue-500">Support</Link>
             </li>
           </ul>
-          <div>
+          {/* <div>
             <Link href="/login">
               <button className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">
                 Login
               </button>
             </Link>
-          </div>
+          </div> */}
         </div>
       </nav>
 
@@ -321,7 +321,8 @@ export default function Home() {
       playsInline
       className="absolute top-0 left-0 w-full h-full object-cover"
     >
-      <source src="assets\6153453-uhd_4096_2160_25fps.mp4" type="video/mp4" />
+      {/* <source src="assets\6153453-uhd_4096_2160_25fps.mp4" type="video/mp4" /> */}
+      <source src="assets\6153459-uhd_4096_2160_25fps.mp4" type="video/mp4" />
       Your browser does not support the video tag.
     </video>
   </div>
@@ -333,7 +334,7 @@ export default function Home() {
     <p className="mt-2 text-lg text-black transition-opacity duration-500 ease-in-out">
       {displayParagraph.trim()}
     </p>
-    <Link href="/login">
+    <Link href="/register">
       <button className="mt-8 bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800">
         Get Started
       </button>
