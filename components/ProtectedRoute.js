@@ -1,25 +1,47 @@
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import Cookies from 'js-cookie';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 
-const ProtectedPage = ({ children }) => {
+const ProtectedRoute = ({ children }) => {
   const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = Cookies.get('token');
-    if (!token) {
-      router.push('/login');
-    } else {
-      setLoading(false);
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login'); // Redirect to login if no token
+      } else {
+        try {
+          const response = await axios.post('/api/verify-token', { token });
+          setIsAuthenticated(true);
+          setIsVerified(response.data.isVerified);
+          setLoading(false);
+
+          if (!response.data.isVerified) {
+            router.push('/verify-email');
+          }
+        } catch (error) {
+          localStorage.removeItem('token');
+          router.push('/login');
+        }
+      }
+    };
+
+    checkAuth();
   }, [router]);
 
   if (loading) {
-    return <p>Loading...</p>;
+    return <div>Loading...</div>;
   }
 
-  return <>{children}</>;
+  if (!isAuthenticated || !isVerified) {
+    return null; // Or show a message like "You need to verify your email"
+  }
+
+  return children;
 };
 
-export default ProtectedPage;
+export default ProtectedRoute;
