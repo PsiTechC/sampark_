@@ -1,0 +1,67 @@
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+
+const CampaignsPage = () => {
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const router = useRouter();
+  const { clientId } = router.query; // Get clientId from the URL
+
+  useEffect(() => {
+    if (clientId) {
+      const fetchCampaigns = async () => {
+        try {
+          const res = await fetch(`/api/campaigns/${clientId}`);
+          if (!res.ok) throw new Error('Failed to fetch campaigns');
+          
+          const data = await res.json();
+          setCampaigns(data);
+          setLoading(false);
+        } catch (err) {
+          console.error(err);
+          setError('Failed to load campaigns');
+          setLoading(false);
+        }
+      };
+
+      fetchCampaigns();
+    }
+  }, [clientId]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Campaigns for Client {clientId}</h1>
+      {campaigns.length === 0 ? (
+        <p>No campaigns found for this client.</p>
+      ) : (
+        <ul>
+          {campaigns.map((campaign) => (
+            <li key={campaign._id} className="mb-4">
+              <div className="bg-gray-100 p-4 rounded shadow">
+                <h2 className="text-2xl font-semibold">{campaign.name}</h2>
+                <p>Status: {campaign.status}</p>
+                <p>Start Date: {campaign.startDate}</p>
+                <p>Remaining Minutes: {campaign.remainingMinutes} mins</p>
+                <p>Completion: {campaign.completion}%</p>
+                <p>Total Interactions: {campaign.totalInteractions} customers</p>
+                <button
+                  className="mt-4 bg-blue-500 text-white p-2 rounded"
+                  onClick={() => router.push(`/campaigns/${campaign._id}`)}
+                >
+                  View Details
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+export default CampaignsPage;

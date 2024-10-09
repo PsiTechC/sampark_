@@ -322,7 +322,7 @@ export default function Home() {
       className="absolute top-0 left-0 w-full h-full object-cover"
     >
       {/* <source src="assets\6153453-uhd_4096_2160_25fps.mp4" type="video/mp4" /> */}
-      <source src="assets\6153459-uhd_4096_2160_25fps.mp4" type="video/mp4" />
+      <source src="assets\6153453-uhd_4096_2160_25fps.mp4" type="video/mp4" />
       Your browser does not support the video tag.
     </video>
   </div>
