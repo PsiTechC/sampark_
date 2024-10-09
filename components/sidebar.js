@@ -1,103 +1,121 @@
-// import Link from 'next/link';
+// import { useRouter } from 'next/router';
+// import { FaChartLine, FaFileAlt, FaCogs, FaSignOutAlt, FaUserCircle } from 'react-icons/fa'; // Add some icons for better appearance
 
-// const Sidebar = () => {
+// const Sidebar = ({ userId, userEmail }) => {
+//   const router = useRouter();
+
 //   return (
-//     <div className="bg-gray-800 text-white w-64 min-h-screen p-4">
-//       <h2 className="text-2xl font-bold mb-4">Navigation</h2>
-//       <ul>
-        
-//         <li className="mb-2">
-//           <Link href="/superadmin/clients">
-//             <a className="text-white hover:text-gray-400">Clients</a>
-//           </Link>
-//         </li>
-//         {/* Add more links as needed */}
-//       </ul>
-//     </div>
+//     <nav className="w-54 bg-gradient-to-b from-green-700 to-gray-900 text-white p-5 flex flex-col justify-between min-h-screen">
+//       {/* Top Section with User Profile */}
+//       <div>
+//         <div className="flex flex-col items-center mb-10">
+//           {/* Profile Icon */}
+//           <FaUserCircle className="text-6xl mb-3" />
+          
+//           {/* User Name or Email */}
+//           <span className="text-lg font-bold">{userEmail || 'User Name'}</span>
+//         </div>
+
+//         {/* Menu Items */}
+//         <ul className="space-y-6 mt-15">
+//           <li
+//             onClick={() => router.push(`/campaigns?userId=${userId}`)}
+//             className="cursor-pointer flex items-center justify-center text-lg hover:bg-gray-800 p-3 rounded"
+//           >
+//             <FaChartLine className="mr-2" /> Campaigns
+//           </li>
+
+//           <li
+//             onClick={() => router.push(`/reports?userId=${userId}`)}
+//             className="cursor-pointer flex items-center justify-center text-lg hover:bg-gray-800 p-3 rounded"
+//           >
+//             <FaFileAlt className="mr-2" /> Reports
+//           </li>
+
+//           <li
+//             onClick={() => router.push(`/settings?userId=${userId}`)}
+//             className="cursor-pointer flex items-center justify-center text-lg hover:bg-gray-800 p-3 rounded"
+//           >
+//             <FaCogs className="mr-2" /> Settings
+//           </li>
+//         </ul>
+//       </div>
+
+//       {/* Bottom Section */}
+//       <div className="mt-8">
+//         <ul className="space-y-6">
+//           <li
+//             onClick={() => router.push('/login')}
+//             className="cursor-pointer flex items-center justify-center text-lg hover:bg-gray-800 p-3 rounded"
+//           >
+//             <FaSignOutAlt className="mr-2" /> Logout
+//           </li>
+//         </ul>
+//       </div>
+//     </nav>
 //   );
 // };
 
 // export default Sidebar;
 
 
-
 // components/Sidebar.js
-import { useRouter } from 'next/router';
 
-const Sidebar = () => {
+import { useRouter } from 'next/router';
+import { FaChartLine, FaFileAlt, FaCogs, FaSignOutAlt, FaUserCircle } from 'react-icons/fa'; // Add some icons for better appearance
+
+const Sidebar = ({ userId, userEmail }) => {
   const router = useRouter();
 
-  const navigateToClients = () => {
-    router.push('/client-management');
-  };
-
-  const navigateToDashboard = () => {
-    router.push('/super-admin-dashboard');
-  };
-
-  const navigateToAssignAgents = () => {
-    router.push('/assign-agents');
-  };
-
-  const navigateToClientDetails = () => {
-    router.push('/client-details');
-  };
-
-  const navigateToLeads = () => {
-    router.push('/leads');
-  };
-
   return (
-    <div className="sidebar">
-      <div className="logo">
-        <img src="/logo.png" alt="Logo" />
+    <nav className="w-54 bg-gradient-to-b from-green-700 to-gray-900 text-white p-5 flex flex-col justify-between min-h-screen">
+      {/* Top Section with User Profile */}
+      <div>
+        <div className="flex flex-col items-center mb-10">
+          {/* Profile Icon */}
+          <FaUserCircle className="text-6xl mb-3" />
+          
+          {/* User Name or Email */}
+          <span className="text-lg font-bold">{userEmail || 'User Name'}</span>
+        </div>
+
+        {/* Menu Items */}
+        <ul className="space-y-6 mt-15">
+          <li
+            onClick={() => router.push(`/campaigns?userId=${userId}`)}
+            className="cursor-pointer flex items-center justify-center text-lg hover:bg-gray-800 p-3 rounded"
+          >
+            <FaChartLine className="mr-2" /> Campaigns
+          </li>
+
+          <li
+            onClick={() => router.push(`/reports?userId=${userId}`)}
+            className="cursor-pointer flex items-center justify-center text-lg hover:bg-gray-800 p-3 rounded"
+          >
+            <FaFileAlt className="mr-2" /> Reports
+          </li>
+
+          <li
+            onClick={() => router.push(`/settings?userId=${userId}`)}
+            className="cursor-pointer flex items-center justify-center text-lg hover:bg-gray-800 p-3 rounded"
+          >
+            <FaCogs className="mr-2" /> Settings
+          </li>
+        </ul>
       </div>
-      <ul>
-        <li className="section-title">CLIENT</li>
-        <li onClick={navigateToClients}>Clients</li>
-        <li onClick={navigateToAssignAgents}>Agents</li>
-        <li>Call List</li>
-        <li>Campaign</li>
-        <li className="section-title">ADMINISTRATOR</li>
-        <li onClick={navigateToAssignAgents}>Assign Agents</li>
-        <li onClick={navigateToClientDetails}>Client Details</li>
-        <li onClick={navigateToLeads}>Leads</li>
-      </ul>
-      <style jsx>{`
-        .sidebar {
-          width: 220px;
-          background-color: #f4f4f4;
-          padding: 20px;
-          height: 100vh;
-          position: fixed;
-          display: flex;
-          flex-direction: column;
-        }
-        .logo {
-          text-align: center;
-          margin-bottom: 20px;
-        }
-        .sidebar ul {
-          list-style-type: none;
-          padding: 0;
-        }
-        .sidebar ul li {
-          padding: 10px;
-          cursor: pointer;
-          color: #333;
-          margin-bottom: 10px;
-        }
-        .sidebar ul li:hover {
-          background-color: #0070f3;
-          color: white;
-        }
-        .sidebar ul li.section-title {
-          font-weight: bold;
-          color: #555;
-          margin-top: 20px;
-        }
-      `}</style>
-    </div>
+
+      {/* Bottom Section */}
+      <div className="mt-8">
+        <ul className="space-y-6">
+          <li
+            onClick={() => router.push('/login')}
+            className="cursor-pointer flex items-center justify-center text-lg hover:bg-gray-800 p-3 rounded"
+          >
+            <FaSignOutAlt className="mr-2" /> Logout
+          </li>
+        </ul>
+      </div>
+    </nav>
   );
 };
 
