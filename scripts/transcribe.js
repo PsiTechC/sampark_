@@ -40,7 +40,7 @@
 
 
 
-
+// C:\botGIT\botGIT-main\scripts\transcribe.js
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
@@ -74,8 +74,11 @@ async function synthesizeSpeechWithMozilla(text) {
     try {
         const response = await axios.post('http://localhost:5002/api/tts', {
             text: text,
-            speaker: 'en', // Change speaker as necessary
-            language: 'en-US', // Language code
+            // speaker: 'en', // Change speaker as necessary
+            // language: 'en-US', // Language code
+            language: 'mr-IN', // Language code for Marathi
+            speaker: 'mr-IN-Voice1', // Example speaker for Marathi
+
             speed: 1.0, // Adjust speech speed
             pitch: 1.0, // Adjust pitch
         }, {
@@ -92,7 +95,7 @@ async function synthesizeSpeechWithMozilla(text) {
 
 // Main function to process audio
 async function processAudio() {
-    const audioFilePath = 'public/English_demo.mp3'; // Input audio file
+    const audioFilePath = 'public/marathi_demo.mp3'; // Input audio file
 
     // Step 1: Transcribe audio to text (STT)
     const transcribedText = await transcribeAudio(audioFilePath);

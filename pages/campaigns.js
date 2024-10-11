@@ -119,28 +119,31 @@ const CampaignsPage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Start Date</label>
-                    <input
-                      type="date"
-                      name="startDate"
-                      value={formData.startDate}
-                      onChange={handleInputChange}
-                      className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">End Date</label>
-                    <input
-                      type="date"
-                      name="endDate"
-                      value={formData.endDate}
-                      onChange={handleInputChange}
-                      className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
+                  
+<div>
+  <label className="block text-sm font-medium text-gray-700">Schedule from</label>
+  <input
+    type="datetime-local"
+    name="startDate"
+    value={formData.startDate}
+    onChange={handleInputChange}
+    className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+    required
+  />
+</div>
+<div>
+  <label className="block text-sm font-medium text-gray-700">Schedule to</label>
+  <input
+    type="datetime-local"
+    name="endDate"
+    value={formData.endDate}
+    onChange={handleInputChange}
+    className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+    required
+  />
+</div>
+
+
                 </div>
 
                 <div>
@@ -154,8 +157,8 @@ const CampaignsPage = () => {
                   >
                     <option value="">Select AI Assistant</option>
                    
-                    <option value="assistant2">customer care at Taj </option>
-                    <option value="assistant3">Campaign for IDFC Bank </option>
+                    <option value="assistant2">Customer care at Taj </option>
+                    <option value="assistant3">Campaign for Bharat Gogavle </option>
                   </select>
                 </div>
 
@@ -274,7 +277,7 @@ const CampaignsPage = () => {
       {/* Campaigns List with Pie and Bar Charts */}
       <div className="grid grid-cols-1 gap-8 w-full max-w-3xl">
         <div className="bg-white p-6 rounded-md shadow">
-          <h2 className="text-xl font-semibold text-indigo-700 text-center">Campaign 1: YES Bank credit card launch</h2>
+          <h2 className="text-xl font-semibold text-indigo-700 text-center">Campaign 1: Customer care at Taj santacruz</h2>
           <p className="text-center"><strong>Start Date:</strong> 2024-09-20</p>
           <p className="text-center"><strong>Status:</strong> Ongoing</p>
           <p className="text-center"><strong>Remaining Minutes :</strong> 6000 mins</p>

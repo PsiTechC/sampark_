@@ -1,20 +1,25 @@
-// pages/api/campaigns/index.js
-
-import { connectToDatabase } from '../../../lib/db'; // Import the db connection utility
+import { connectToDatabase } from '../../../lib/db';
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    try {
-      const { db } = await connectToDatabase(); // Connect to the database
-      const campaigns = await db.collection('campaigns').find().toArray(); // Fetch all campaigns from 'campaigns' collection
+  const { clientId } = req.query; // Get clientId from query params
 
-      // Return the campaigns as a JSON response
-      res.status(200).json(campaigns);
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
-      res.status(500).json({ message: 'Failed to load campaigns' });
+  if (!clientId) {
+    return res.status(400).json({ message: 'clientId is required' });
+  }
+
+  try {
+    const { db } = await connectToDatabase();
+
+    // Fetch campaigns associated with the clientId
+    const campaigns = await db.collection('campaigns').find({ clientId }).toArray();
+
+    if (campaigns.length === 0) {
+      return res.status(404).json({ message: 'No campaigns found for this client' });
     }
-  } else {
-    res.status(405).json({ message: 'Method not allowed' });
+
+    return res.status(200).json(campaigns); // Return the campaigns
+  } catch (error) {
+    console.error('Error fetching campaigns:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 }
