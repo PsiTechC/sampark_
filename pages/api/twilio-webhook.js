@@ -164,7 +164,7 @@ export default async function handler(req, res) {
         input: 'speech',
         action: gatherUrl,
         method: 'POST',
-      }).say({ voice: 'man' }, `Hello, you are connected to ${assistant.name}. How can I assist you today?`);
+      }).say({ voice: 'man' }, `Hello, you are connected to ${assistant.name}. Welcome to Taj by Raheja Builders, Vashi—a premium ready-to-move-in residential project offering luxurious 2BHK & 3BHK homes with world-class amenities in a prime Navi Mumbai location. Will you be interested in knowing more? If you have any questions, feel free to ask!`);
 
       // Save call start message
       await db.collection('messages').insertOne({

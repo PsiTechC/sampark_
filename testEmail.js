@@ -8,9 +8,9 @@ console.log('EMAIL_PASS:', process.env.EMAIL_PASS);
 async function sendTestEmail() {
   console.log('Creating transporter...');
   const transporter = nodemailer.createTransport({
-    host: 'mail.samparkai.com',
-    port: 587,
-    secure: false,
+    host: 'mail.psitech.co.in',
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -24,7 +24,7 @@ async function sendTestEmail() {
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: 'shantman011@gmail.com',
+    to: 'kale***REMOVED***980@gmail.com',
     subject: 'Welcome to SamparkAI!',
     text: `Dear Shantanu Deshmukh,
     
