@@ -1,23 +1,22 @@
-
-
-
-
-
 import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/sidebar";
 import AgentsPage from "../../components/agents/agents_page";
-import EditAgent from "../../components/agents/edit_agents";
-import CallLogs from "../../components/agents/call_logs"; // New Call Logs Component
-import PhoneNumbers from "../agents/numbers"
+import EditAgent from "../../components/agents/EditAgents";
+import CallAgentModal from "../../components/agents/CallAgentModal";
+import CallLogs from "../../components/call_logs"; 
+import PhoneNumbers from "../agents/numbers";
+import ClientDashboard from "../agents/ClientDashboard";
+import Marketing from "../agents/Marketing";
+import ConnectCalender from "../agents/ConnectCalender";
 
 export default function Dashboard() {
   const [activePage, setActivePage] = useState("agents");
   const [showCreateAgentModal, setShowCreateAgentModal] = useState(false);
+  const [showCallAgentModal, setShowCallAgentModal] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState(null);
-
   const [agents, setAgents] = useState([]);
-  const [phoneNumbers, setPhoneNumbers] = useState([]);
   const [loading, setLoading] = useState(true);
+
 
   // Fetch Agents
   const fetchAgents = useCallback(async () => {
@@ -25,7 +24,7 @@ export default function Dashboard() {
     try {
       const res = await fetch("https://api.bolna.dev/v2/agent/all", {
         headers: {
-          Authorization: `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
         },
       });
       const data = await res.json();
@@ -37,50 +36,23 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("Error fetching agents:", error);
-      setAgents([]);  // Set fallback to avoid runtime errors
+      setAgents([]);
     }
     setLoading(false);
   }, []);
-  
 
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
 
-  // Fetch Phone Numbers
-  const API_URL = "https://api.bolna.dev/phone-numbers/all";
-  const API_KEY = "bn-08f3037613b4452a9509040887bc5d48";
-
-  const fetchPhoneNumbers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(API_URL, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${API_KEY}`,
-        },
-      });
-      const data = await response.json();
-      setPhoneNumbers(data);
-    } catch (error) {
-      console.error("Error fetching phone numbers:", error);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchPhoneNumbers();
-  }, [fetchPhoneNumbers]);
-
-  
-  // Get the selected agent
-  const selectedAgent = Array.isArray(agents) ? agents.find(agent => agent.id === selectedAgentId) : null;
-
+  // Get selected agent details
+  const selectedAgent = agents.find(agent => agent.id === selectedAgentId) || null;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar setActivePage={setActivePage} />
       <div className="flex-grow p-6 flex gap-6">
+        
         {/* Sidebar Left Panel */}
         <div className="w-1/3 bg-white p-4 rounded-lg shadow-md">
           {/* Action Buttons */}
@@ -91,8 +63,14 @@ export default function Dashboard() {
             >
               + Add Agent
             </button>
-            <button className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400">
-              📥 Import
+            <button
+              onClick={() => {
+                console.log("Opening CallAgentModal"); // Debug log
+                setShowCallAgentModal(true);
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              📞 Call Agent
             </button>
           </div>
 
@@ -121,46 +99,56 @@ export default function Dashboard() {
           )}
         </div>
 
-               
-
-
-<div className="w-2/3 bg-white p-6 rounded-lg shadow-md">
+        {/* Right Panel */}
+        <div className="w-2/3 bg-white p-6 rounded-lg shadow-md">
           {activePage === "agents" && selectedAgent ? (
-            <EditAgent key={selectedAgent.id} agent={selectedAgent} fetchAgents={fetchAgents} />
+            <EditAgent key={selectedAgent.id} agent={selectedAgent} fetchAgents={fetchAgents} agentId={selectedAgentId}/>
           ) : activePage === "call_logs" ? (
             <CallLogs />
           ) : activePage === "numbers" ? (
             <PhoneNumbers />
-          ) : (
+          ) : activePage ==="ClientDashboard" ?(
+            <ClientDashboard/>
+          ):activePage ==="Marketing" ?(
+            <Marketing/>
+          ):activePage ==="ConnectCalender" ?(
+            <ConnectCalender/>
+          ):(
             <p className="text-gray-500 text-center">Select an option from the sidebar</p>
           )}
         </div>
-
-
       </div>
-      
 
       {/* Create Agent Modal */}
       {showCreateAgentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-1/3 max-h-screen overflow-auto relative">
-            {/* Close Button */}
             <button
               onClick={() => setShowCreateAgentModal(false)}
               className="absolute top-2 right-2 text-gray-600 hover:text-black"
             >
               ✖
             </button>
-
-            {/* Agent Form Inside Modal */}
             <AgentsPage setShowCreateAgentModal={setShowCreateAgentModal} fetchAgents={fetchAgents} />
           </div>
         </div>
       )}
+
+      {/* Call Agent Modal */}
+      {showCallAgentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-1/3 max-h-screen overflow-auto relative">
+            <button
+              onClick={() => setShowCallAgentModal(false)}
+              className="absolute top-2 right-2 text-gray-600 hover:text-black"
+            >
+              ✖
+            </button>
+            <CallAgentModal setShowCallAgentModal={setShowCallAgentModal} agentId={selectedAgentId} />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
-
-
-
-

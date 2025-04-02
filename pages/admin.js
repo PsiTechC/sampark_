@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import AddAssistantModal from '../components/AddAssistantModal';
-import ChatInterface from '../components/ChatInterface';
-import Navbar from '../components/Navbar';
-import EditAssistantModal from '../components/EditAssistantModal';
+// import AddAssistantModal from '../components/AddAssistantModal';
+// import ChatInterface from '../components/ChatInterface';
+// import Navbar from '../components/Navbar';
+// import EditAssistantModal from '../components/EditAssistantModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
 import Modal from 'react-modal';
@@ -77,7 +77,7 @@ const Admin = () => {
 
   return (
     <div className="h-screen flex flex-col">
-      <Navbar />
+      {/* <Navbar /> */}
       <div className="flex flex-1 overflow-hidden">
         <div className="w-1/4 bg-white text-black p-4 flex flex-col shadow-md">
           <button
@@ -127,23 +127,23 @@ const Admin = () => {
             ))}
           </div>
         </div>
-        <div className="flex-1 p-4 flex flex-col bg-gray-100">
+        {/* <div className="flex-1 p-4 flex flex-col bg-gray-100">
           {selectedAssistant ? (
             <ChatInterface assistant={selectedAssistant} />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">Select an assistant to start chatting</div>
           )}
-        </div>
-        {showAddModal && (
+        </div> */}
+        {/* {showAddModal && (
           <AddAssistantModal onClose={() => setShowAddModal(false)} onSave={handleSave} />
-        )}
-        {showEditModal && (
+        )} */}
+        {/* {showEditModal && (
           <EditAssistantModal
             assistant={showEditModal}
             onClose={() => setShowEditModal(false)}
             onSave={handleUpdate}
           />
-        )}
+        )} */}
       </div>
       <Modal
         isOpen={showDeleteModal}

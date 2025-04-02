@@ -1,7 +1,4 @@
 
-
-
-
 // // C:\Users\***REMOVED*** kale\botGIT\pages\register.js
 // import { useState } from 'react';
 // import axios from 'axios';

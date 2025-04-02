@@ -1,6 +1,6 @@
 //C:\botGIT\botGIT-main\components\agents_page.js
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function CreateAgent() {
   const [formData, setFormData] = useState({
@@ -28,7 +28,7 @@ export default function CreateAgent() {
     const fetchAgents = async () => {
       try {
         const res = await fetch('https://api.bolna.dev/v2/agent/all', {
-          headers: { Authorization: `Bearer bn-08f3037613b4452a9509040887bc5d48` },
+          headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}` },
         });
         const data = await res.json();
         setAgents(data);
@@ -106,7 +106,7 @@ export default function CreateAgent() {
       const res = await fetch("https://api.bolna.dev/v2/agent", {
         method: "POST",
         headers: {
-          "Authorization": "Bearer bn-08f3037613b4452a9509040887bc5d48",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
@@ -123,20 +123,9 @@ export default function CreateAgent() {
   return (
     <div className="max-w-lg mx-auto p-6 bg-white shadow rounded-lg">
 
-<div>
-      <h2>Select an Agent</h2>
-      <ul>
-        {agents.map(agent => (
-          <li key={agent.id}>
-            <button onClick={() => handleAgentSelect(agent.id)}>{agent.agent_name}</button>
-          </li>
-        ))}
-      </ul>
-      <p>Selected Agent ID: {selectedAgentId}</p>
-      {/* existing form code here */}
-    </div>
 
-      <h2 className="text-2xl font-bold mb-4">Create AI Agent</h2>
+
+      <h2 className="text-xl font-bold mb-4">Create AI Agent</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="text" name="agentName" placeholder="Agent Name" value={formData.agentName} onChange={handleChange} className="w-full p-2 border rounded" required />
         <input type="text" name="businessName" placeholder="Business Name" value={formData.businessName} onChange={handleChange} className="w-full p-2 border rounded" required />
