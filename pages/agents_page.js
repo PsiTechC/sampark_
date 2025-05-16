@@ -106,7 +106,7 @@ export default function CreateAgent() {
         <textarea name="systemPrompt" placeholder="System Prompt" value={formData.systemPrompt} onChange={handleChange} className="w-full p-2 border rounded"></textarea>
         <select name="aiModel" value={formData.aiModel} onChange={handleChange} className="w-full p-2 border rounded">
           <option value="gpt-4o-mini">GPT-4o Mini</option>
-          <option value="gpt-3.5-turbo-1106">GPT-3.5 Turbo</option>
+          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
           <option value="groq/gemma-7b-it">Gemma-7B-IT (Groq)</option>
           <option value="deepinfra/cognitivecomputations/dolphin-2.6-mixtral-8x7b">Dolphin 2.6 Mixtral (DeepInfra)</option>
         </select>

@@ -63,7 +63,7 @@ const Sidebar = ({ clientId }) => {
               className="flex items-center space-x-3"
             >
               <FaAd className="text-blue-500" />
-              <span>Call Marketing</span>
+              <span>Marketing Campaigns</span>
             </Link>
           </li>
 

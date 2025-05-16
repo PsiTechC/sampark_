@@ -1,27 +1,51 @@
-//C:\botGIT\botGIT-main\components\agents_page.js
 
+// //working adding vapi
 import { useState, useEffect } from "react";
+import Alert from "../ui/Alerts";
+
 
 export default function CreateAgent() {
+  const [market, setMarket] = useState("india"); // india or us
   const [formData, setFormData] = useState({
     agentName: "",
     businessName: "",
+    welcomeMessage: "Hello! Welcome to our AI Agent. How can I assist you today?",
+    systemPrompt: "You are an AI agent helping customers with inquiries, pricing, and support. Keep responses clear, concise, and helpful.",
+    voice: "burt-11labs",
+    voiceProvider: "elevenlabs",
+    callTerminate: 300,
     aboutProduct: "",
     aboutBusiness: "",
-    welcomeMessage: "Hello! Welcome to our AI Agent. How can I assist you today?",
-    aiModel: "gpt-4o-mini",
-    voice: "Vikram",
-    agentType: "sales",
-    systemPrompt: "You are an AI agent helping customers with inquiries, pricing, and support. Keep responses clear, concise, and helpful.",
-    callTerminate: 300,
     transcriberProvider: "deepgram",
-    transcriberModel: "nova-2"
+    transcriberModel: "nova-2",
+    language: "en",
+    phoneNumber: ""
   });
 
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
   const [agents, setAgents] = useState([]);
-  const [selectedAgentId, setSelectedAgentId] = useState(null);
+  const [alert, setAlert] = useState({ type: "", message: "", visible: false });
+
+  const toolKey = `transfer_call_${Math.random().toString(36).substring(2, 12)}`;
+
+
+
+  const voiceOptions = {
+    india: ["Monika Sogam", "Vikram", "Roshni", "Anjali", "Sara", "Sanjay", "Vijay"],
+    us: [
+      "burt-11labs", "marissa-11labs", "andrea-11labs", "sarah-11labs", "phillip-11labs",
+      "steve-11labs", "joseph-11labs", "myra-11labs", "paula-11labs", "ryan-11labs",
+      "drew-11labs", "paul-11labs", "mrb-11labs", "matilda-11labs", "mark-11labs"
+    ]
+  };
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      voice: voiceOptions[market][0] || "", // Set default voice for selected market
+    }));
+  }, [market]);
 
 
   useEffect(() => {
@@ -39,12 +63,6 @@ export default function CreateAgent() {
     fetchAgents();
   }, []);
 
-  const handleAgentSelect = (id) => {
-    setSelectedAgentId(id);
-    console.log('Selected Agent ID:', id);
-  };
-
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -53,108 +71,216 @@ export default function CreateAgent() {
     e.preventDefault();
     setLoading(true);
 
-    const requestBody = {
-      agent_config: {
-        agent_name: formData.agentName,
-        agent_welcome_message: formData.welcomeMessage,
-        agent_type: formData.agentType,
-        tasks: [
-          {
-            task_type: "conversation",
-            task_config: { ambient_noise: false, backchanneling: false, call_terminate: formData.callTerminate },
-            toolchain: { execution: "sequential", pipelines: [["transcriber", "llm", "synthesizer"]] },
-            tools_config: {
-              input: { format: "audio", provider: "default" },
-              llm_agent: {
-                model: formData.aiModel,
-                provider: "openai",
-                temperature: 0.7,
-                agent_flow_type: "streaming",
-                agent_type: "simple_llm_agent",
-                llm_config: { max_tokens: 1000 },
-              },
-              synthesizer: {
-                provider: "elevenlabs",
-                provider_config: {
-                  model: "eleven_turbo_v2_5",
-                  voice: formData.voice,
-                  voice_id: "7Q6qcYvsTRgb4IVcoAdK",
-                  temperature: 0.5,
-                  similarity_boost: 0.5,
-                },
-              },
-              transcriber: {
-                provider: formData.transcriberProvider,
-                task: "transcribe",
-                model: formData.transcriberModel,
-                stream: true,
-                encoding: "linear16",
-                language: "en",
-              },
-            },
-          },
-        ],
-      },
-      agent_prompts: {
-        task_1: {
-          system_prompt: formData.systemPrompt,
-        },
-      },
-    };
-
     try {
-      const res = await fetch("https://api.bolna.dev/v2/agent", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
+      let res;
+      if (market === "india") {
+        const requestBody = {
+          agent_config: {
+            agent_name: formData.agentName,
+            agent_welcome_message: formData.welcomeMessage,
+            agent_type: "sales",
+            tasks: [
+              {
+                task_type: "conversation",
+                task_config: {
+                  ambient_noise: false,
+                  backchanneling: false,
+                  call_terminate: formData.callTerminate
+                },
+                toolchain: {
+                  execution: "sequential",
+                  pipelines: [["transcriber", "llm", "synthesizer"]]
+                },
+                tools_config: {
+                  input: { format: "audio", provider: "default" },
+                  llm_agent: {
+                    model: "gpt-4o",
+                    provider: "openai",
+                    temperature: 0.7,
+                    agent_flow_type: "streaming",
+                    agent_type: "simple_llm_agent",
+                    llm_config: { max_tokens: 1000 }
+                  },
+                  synthesizer: {
+                    provider: formData.voiceProvider,
+                    provider_config: {
+                      model: "eleven_turbo_v2_5",
+                      voice: formData.voice,
+                      voice_id: "7Q6qcYvsTRgb4IVcoAdK",
+                      temperature: 0.5,
+                      similarity_boost: 0.5
+                    }
+                  },
+                  transcriber: {
+                    provider: formData.transcriberProvider,
+                    task: "transcribe",
+                    model: formData.transcriberModel,
+                    stream: true,
+                    encoding: "linear16",
+                    language: formData.language || 'en'
+                  },
+                  api_tools: {
+                    tools: [
+                      {
+                        name: "transfer_call_support",
+                        key: "transfer_call",
+                        description: "Use this tool to transfer the call",
+                        pre_call_message: "Sure, I'll transfer the call for you. Please wait a moment...",
+                        parameters: {
+                          type: "object",
+                          properties: {
+                            call_sid: {
+                              type: "string",
+                              description: "unique call id"
+                            }
+                          },
+                          required: ["call_sid"]
+                        }
+                      }
+                    ],
+                    tools_params: {
+                      transfer_call_support: {
+                        param: JSON.stringify({
+                          call_transfer_number: formData.phoneNumber,
+                          call_sid: "{{call_sid}}"
+                        })
+                      }
+                    }
+                  }
+                  
+                  
+                }
+              }
+            ]
+            
+          },
+          agent_prompts: {
+            task_1: {
+              system_prompt: formData.systemPrompt
+            }
+          }
+        };
+
+        res = await fetch("https://api.bolna.dev/v2/agent", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody)
+        });
+      } else {
+        const requestBody = {
+          name: formData.agentName,
+          firstMessage: formData.welcomeMessage,
+          voice: formData.voice
+        };
+
+        res = await fetch("https://api.vapi.ai/assistant", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody)
+        });
+      }
+
       const data = await res.json();
-      setResponse(data);
+
+      if (!res.ok) {
+        const errorMessage = data?.detail || data?.message || "Failed to create agent.";
+        setAlert({ type: "error", message: `❌ ${errorMessage}`, visible: true });
+      } else {
+        setAlert({ type: "success", message: "✅ Agent created successfully!", visible: true });
+      }
+
+
     } catch (error) {
       console.error("Error creating agent:", error);
-      setResponse({ error: "Failed to create agent" });
+      setAlert({ type: "error", message: `Failed to create agent. Please check the console for more details.`, visible: true });
     }
+
     setLoading(false);
   };
 
+
   return (
     <div className="max-w-lg mx-auto p-6 bg-white shadow rounded-lg">
+      <div className="flex space-x-2 mb-4">
+        <button
+          onClick={() => setMarket("india")}
+          className={`px-4 py-2 rounded ${market === "india" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+        >
+          For Indian Market
+        </button>
+        <button
+          onClick={() => setMarket("us")}
+          className={`px-4 py-2 rounded ${market === "us" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+        >
+          For US Market
+        </button>
+      </div>
 
-
-
-      <h2 className="text-xl font-bold mb-4">Create AI Agent</h2>
+      <h2 className="text-xl font-bold mb-4">Create AI Agent ({market === "india" ? "Bolna" : "Vapi"})</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="text" name="agentName" placeholder="Agent Name" value={formData.agentName} onChange={handleChange} className="w-full p-2 border rounded" required />
-        <input type="text" name="businessName" placeholder="Business Name" value={formData.businessName} onChange={handleChange} className="w-full p-2 border rounded" required />
-        <input type="text" name="aboutProduct" placeholder="About Product" value={formData.aboutProduct} onChange={handleChange} className="w-full p-2 border rounded" />
-        <input type="text" name="aboutBusiness" placeholder="About Business" value={formData.aboutBusiness} onChange={handleChange} className="w-full p-2 border rounded" />
         <input type="text" name="welcomeMessage" placeholder="Welcome Message" value={formData.welcomeMessage} onChange={handleChange} className="w-full p-2 border rounded" />
+        <input
+          type="text"
+          name="phoneNumber"
+          placeholder="Add number"
+          value={formData.phoneNumber || ""}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        />
+
+        <select
+          name="language"
+          value={formData.language}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        >
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+        </select>
+
         <textarea name="systemPrompt" placeholder="System Prompt" value={formData.systemPrompt} onChange={handleChange} className="w-full p-2 border rounded"></textarea>
-        <select name="aiModel" value={formData.aiModel} onChange={handleChange} className="w-full p-2 border rounded">
-          <option value="gpt-4o-mini">GPT-4o Mini</option>
-          <option value="gpt-3.5-turbo-1106">GPT-3.5 Turbo</option>
-          <option value="groq/gemma-7b-it">Gemma-7B-IT (Groq)</option>
-          <option value="deepinfra/cognitivecomputations/dolphin-2.6-mixtral-8x7b">Dolphin 2.6 Mixtral (DeepInfra)</option>
-        </select>
+
         <select name="voice" value={formData.voice} onChange={handleChange} className="w-full p-2 border rounded">
-          <option value="Vikram">Vikram</option>
-          <option value="Roshni">Roshni</option>
-          <option value="Matthew">Matthew (Polly)</option>
+          {voiceOptions[market].map((v) => (
+            <option key={v} value={v}>{v}</option>
+          ))}
         </select>
-        <select name="callTerminate" value={formData.callTerminate} onChange={handleChange} className="w-full p-2 border rounded">
+
+        {/* <select name="callTerminate" value={formData.callTerminate} onChange={handleChange} className="w-full p-2 border rounded">
           <option value="180">180 Seconds</option>
           <option value="300">300 Seconds</option>
           <option value="355">355 Seconds</option>
           <option value="420">420 Seconds</option>
-        </select>
+        </select> */}
+
+        {market === "india" && (
+          <>
+            {/* <select name="voiceProvider" value={formData.voiceProvider} onChange={handleChange} className="w-full p-2 border rounded">
+              <option value="elevenlabs">11 Labs</option>
+              <option value="polly">Polly</option>
+            </select> */}
+          </>
+        )}
+
         <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">
           {loading ? "Creating..." : "Create Agent"}
         </button>
       </form>
-      {response && <p className="mt-4 text-sm text-gray-700">{JSON.stringify(response)}</p>}
+      {alert.visible && (
+        <Alert
+          type={alert.type}
+          message={alert.message}
+          onClose={() => setAlert({ ...alert, visible: false })}
+        />
+      )}
+
     </div>
   );
 }

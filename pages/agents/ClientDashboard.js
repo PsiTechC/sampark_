@@ -1,37 +1,40 @@
-
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar";
 
 function ClientDashboard() {
   const [agents, setAgents] = useState([]);
   const [analyticsData, setAnalyticsData] = useState([]);
   const [sentimentData, setSentimentData] = useState([]);
+  const [campaignSentiment, setCampaignSentiment] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [selectedAgentCost, setSelectedAgentCost] = useState(null);
+  const [selectedPeriod, setSelectedPeriod] = useState("total");
+  const [costBreakdown, setCostBreakdown] = useState(null);
 
-  // 1️⃣ Fetch agents (basic list)
+  // Fetch agents
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const res = await fetch('https://api.bolna.dev/v2/agent/all', {
+        const res = await fetch("https://api.bolna.dev/v2/agent/all", {
           headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}` },
         });
         const data = await res.json();
         setAgents(data);
       } catch (err) {
-        console.error('Failed to fetch agents', err);
-        setError('Failed to load agents');
+        console.error("Failed to fetch agents", err);
+        setError("Failed to load agents");
       }
     };
     fetchAgents();
   }, []);
 
-  // 2️⃣ Fetch analytics
+  // Fetch analytics
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch('/api/clients/fetchAnalytics');
+        const res = await fetch("/api/clients/fetchAnalytics");
         const data = await res.json();
         setAnalyticsData(data.analytics || []);
       } catch (err) {
@@ -41,33 +44,91 @@ function ClientDashboard() {
     };
     fetchAnalytics();
   }, []);
-
-  // 3️⃣ Fetch sentiment data
+  const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  // Fetch sentiment summary (agent-wide)
   useEffect(() => {
     const fetchSentiment = async () => {
       try {
-        const res = await fetch('http://localhost:8080/api/clients/sentimentAnalysis');
+        const res = await fetch(`${BASE_URL}/api/clients/sentimentAnalysis`);
         const data = await res.json();
         setSentimentData(data.sentiment_summary || []);
-        setLoading(false);
       } catch (err) {
         console.error("Failed to fetch sentiment data", err);
         setError("Error fetching sentiment data");
-        setLoading(false);
       }
     };
     fetchSentiment();
   }, []);
 
-  // 🔗 Merge everything
+  // Fetch campaign sentiment summary
+  useEffect(() => {
+    const fetchCampaignSentiment = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/clients/batchSentimentAnalysis`);
+        const data = await res.json();
+        setCampaignSentiment(data.sentiment_summary || []);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch campaign sentiment", err);
+        setError("Error fetching campaign sentiment");
+        setLoading(false);
+      }
+    };
+    fetchCampaignSentiment();
+  }, []);
+
+  const fetchAgentSpend = async (agentId) => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/clients/spendData?agent_id=${agentId}`);
+      const data = await res.json();
+      setSelectedAgentCost(data.total_cost_usd);
+      setCostBreakdown(data.cost_breakdown);
+      setSelectedPeriod("total");
+    } catch (err) {
+      console.error("❌ Failed to fetch agent cost", err);
+      setSelectedAgentCost(null);
+      setCostBreakdown(null);
+    }
+  };
+
+  const getDisplayedCost = () => {
+    if (!selectedAgentId || !costBreakdown) return selectedAgentCost ?? "Loading...";
+    if (selectedPeriod === "total") return selectedAgentCost;
+    return costBreakdown?.[selectedPeriod] ?? 0;
+  };
+
+  const PERIOD_OPTIONS = [
+    { label: "Total Cost", key: "total" },
+    { label: "Last 7D", key: "last_7_days" },
+    { label: "Last 30D", key: "last_30_days" },
+    { label: "Last 90D", key: "last_90_days" },
+    { label: "Current Year", key: "current_year" },
+  ];
+
+  // Merge agent-wide analytics and sentiment
   const enrichedAgents = agents.map((agent) => {
     const analytics = analyticsData.find((a) => a.id === agent.id) || {};
     const sentiment = sentimentData.find((s) => s.agent_id === agent.id) || {};
+    const campaign = campaignSentiment.find((c) => c.agent_id === agent.id) || {
+      total_batches: 0,
+      batch_summaries: [],
+    };
+
+    // Aggregate sentiment from all batches
+    const totalCampaignPos = campaign.batch_summaries.reduce((sum, b) => sum + (b.positive || 0), 0);
+    const totalCampaignNeg = campaign.batch_summaries.reduce((sum, b) => sum + (b.negative || 0), 0);
+    const totalCampaignNeu = campaign.batch_summaries.reduce((sum, b) => sum + (b.neutral || 0), 0);
+    const totalCampaignNone = campaign.batch_summaries.reduce((sum, b) => sum + (b.no_response || 0), 0);
 
     return {
       ...agent,
       ...analytics,
       ...sentiment,
+      total_batches: campaign.total_batches || 0,
+      campaign_positive: totalCampaignPos,
+      campaign_negative: totalCampaignNeg,
+      campaign_neutral: totalCampaignNeu,
+      campaign_no_response: totalCampaignNone,
     };
   });
 
@@ -75,15 +136,47 @@ function ClientDashboard() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-grow p-6 flex flex-col">
-        {/* --- Top Stats --- */}
-        <div className="mb-6">
+      <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-1">Money Spent</h2>
-          <p className="text-lg text-gray-600 mb-4">$15,280 Avg cost</p>
+          <div className="mb-4">
+            <label className="text-sm text-gray-700 mr-2">Select Agent:</label>
+            <select
+              className="border border-gray-300 rounded px-3 py-1 text-sm"
+              value={selectedAgentId}
+              onChange={(e) => {
+                const agentId = e.target.value;
+                setSelectedAgentId(agentId);
+                if (agentId) {
+                  fetchAgentSpend(agentId); 
+                } else {
+                  setSelectedAgentCost(null);
+                }
+              }}
+
+            >
+              <option value="">-- Select Agent --</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.agent_name || "Unnamed Agent"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="text-lg text-gray-600 mb-4">
+            {selectedAgentId
+              ? `${PERIOD_OPTIONS.find(p => p.key === selectedPeriod)?.label || "Total"}: $${getDisplayedCost()}`
+              : "Select an agent to view cost"}
+          </p>
+
+
           <div className="flex flex-wrap gap-2 mb-4">
-            {["Last 7D", "Last 30D", "Last 90D", "Current Year"].map((label) => (
+            {PERIOD_OPTIONS.map(({ label, key }) => (
               <button
-                key={label}
-                className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-100 transition"
+                key={key}
+                onClick={() => setSelectedPeriod(key)}
+                className={`px-3 py-1 text-sm border rounded-md shadow-sm transition ${selectedPeriod === key ? "bg-blue-600 text-white" : "bg-white border-gray-300 hover:bg-gray-100"
+                  }`}
               >
                 {label}
               </button>
@@ -91,7 +184,7 @@ function ClientDashboard() {
           </div>
           {/* Legend */}
           <div className="flex items-center gap-4 text-sm text-gray-600">
-            <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Positive</div>
+            <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-300"></span> Positive</div>
             <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500"></span> Negative</div>
             <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-400"></span> Neutral</div>
             <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-gray-400"></span> No Sentiment Data</div>
@@ -132,16 +225,9 @@ function ClientDashboard() {
 
                     return (
                       <tr key={agent.id} className="border-t hover:bg-gray-50 transition">
-                        {/* Agent Name */}
                         <td className="px-4 py-2 font-medium text-gray-900">{agent.agent_name || "Unknown"}</td>
-
-                        {/* Amount Spent */}
                         <td className="px-4 py-2 text-gray-700">${agent.totalCost || "0.00"}</td>
-
-                        {/* Total Calls */}
                         <td className="px-4 py-2 text-gray-700">{totalCalls}</td>
-
-                        {/* Calls Breakdown Bar with Labels */}
                         <td className="px-4 py-2">
                           <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1">
                             <span>Answered: {answered}</span>
@@ -149,7 +235,7 @@ function ClientDashboard() {
                           </div>
                           <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex shadow-inner">
                             <div
-                              className="bg-green-500 transition duration-200 hover:brightness-110"
+                              className="bg-blue-400 transition duration-200 hover:brightness-110"
                               style={{ width: `${(answered / totalCalls) * 100 || 0}%` }}
                               title={`Answered: ${answered}`}
                             />
@@ -160,11 +246,6 @@ function ClientDashboard() {
                             />
                           </div>
                         </td>
-
-                        {/* Calls Breakdown Bar with Labels */}
-
-
-                        {/* Sentiment Breakdown Bar with Labels */}
                         <td className="px-4 py-2">
                           <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1 flex-wrap gap-x-2">
                             <span>👍 {positive}</span>
@@ -174,7 +255,7 @@ function ClientDashboard() {
                           </div>
                           <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex shadow-inner">
                             <div
-                              className="bg-blue-500 transition duration-200 hover:brightness-110"
+                              className="bg-green-300 transition duration-200 hover:brightness-110"
                               style={{ width: `${(positive / totalSentiments) * 100 || 0}%` }}
                               title={`Positive: ${positive}`}
                             />
@@ -205,44 +286,73 @@ function ClientDashboard() {
           )}
         </div>
 
-        {/* --- Program Details --- */}
+        {/* --- Campaigning Details --- */}
         <div className="mt-8">
-          <h3 className="text-xl font-semibold px-4 pb-2 text-gray-800">Program Details</h3>
-          <table className="min-w-full text-sm text-left border border-gray-200 rounded-lg overflow-hidden">
-            <thead className="bg-gray-100 text-gray-700">
-              <tr>
-                <th className="px-4 py-2">Program Name</th>
-                <th className="px-4 py-2">Cost Spent</th>
-                <th className="px-4 py-2"># Calls Completed</th>
-                <th className="px-4 py-2"># Calls Answered</th>
-                <th className="px-4 py-2"># Answered (Positive)</th>
-                <th className="px-4 py-2"># Answered (Negative)</th>
-                <th className="px-4 py-2"># Answered (Neutral)</th>
-                <th className="px-4 py-2"># Answered (No Sentiment)</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700">
-              {[
-                { name: "Program A", cost: "$6.500", total: 190, answered: 180, pos: 150, neg: 65, neut: 30, none: 10 },
-                { name: "Program B", cost: "$4.100", total: 140, answered: 140, pos: 90, neg: 20, neut: 25, none: 45 },
-                { name: "Program C", cost: "$4.680", total: 110, answered: 100, pos: 100, neg: 10, neut: 30, none: 5 },
-              ].map((program) => (
-                <tr key={program.name} className="border-t hover:bg-gray-50 transition">
-                  <td className="px-4 py-2">{program.name}</td>
-                  <td className="px-4 py-2">{program.cost}</td>
-                  <td className="px-4 py-2">{program.total}</td>
-                  <td className="px-4 py-2">{program.answered}</td>
-                  <td className="px-4 py-2">{program.pos}</td>
-                  <td className="px-4 py-2">{program.neg}</td>
-                  <td className="px-4 py-2">{program.neut}</td>
-                  <td className="px-4 py-2">{program.none}</td>
+          <h3 className="text-xl font-semibold px-4 pt-4 pb-2 text-gray-800">Campaigning Summary</h3>
+          <div className="flex-1 overflow-auto border border-gray-300 bg-white shadow-md rounded-lg">
+            <table className="min-w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-700">
+                <tr>
+                  <th className="px-4 py-2">Agent</th>
+                  <th className="px-4 py-2">Total Campaigns</th>
+                  <th className="px-4 py-2">Sentiment</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {enrichedAgents.map((agent) => {
+                  const {
+                    agent_name,
+                    total_batches,
+                    campaign_positive,
+                    campaign_negative,
+                    campaign_neutral,
+                    campaign_no_response,
+                  } = agent;
+
+                  const totalSentiments =
+                    campaign_positive + campaign_negative + campaign_neutral + campaign_no_response;
+
+                  return (
+                    <tr key={agent.id} className="border-t hover:bg-gray-50 transition">
+                      <td className="px-4 py-2 font-medium text-gray-900">{agent_name || "Unknown"}</td>
+                      <td className="px-4 py-2 text-gray-700">{total_batches}</td>
+                      <td className="px-4 py-2">
+                        <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1 flex-wrap gap-x-2">
+                          <span>👍 {campaign_positive}</span>
+                          <span>👎 {campaign_negative}</span>
+                          <span>😐 {campaign_neutral}</span>
+                          <span>🚫 {campaign_no_response}</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex shadow-inner">
+                          <div
+                            className="bg-green-300"
+                            style={{ width: `${(campaign_positive / totalSentiments) * 100 || 0}%` }}
+                            title={`Positive: ${campaign_positive}`}
+                          />
+                          <div
+                            className="bg-red-500"
+                            style={{ width: `${(campaign_negative / totalSentiments) * 100 || 0}%` }}
+                            title={`Negative: ${campaign_negative}`}
+                          />
+                          <div
+                            className="bg-yellow-400"
+                            style={{ width: `${(campaign_neutral / totalSentiments) * 100 || 0}%` }}
+                            title={`Neutral: ${campaign_neutral}`}
+                          />
+                          <div
+                            className="bg-gray-400"
+                            style={{ width: `${(campaign_no_response / totalSentiments) * 100 || 0}%` }}
+                            title={`No Response: ${campaign_no_response}`}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-
-
       </div>
     </div>
   );

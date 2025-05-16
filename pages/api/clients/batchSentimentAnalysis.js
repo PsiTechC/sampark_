@@ -1,51 +1,7 @@
 // import { connectToDatabase } from "../../../lib/db";
-
-// export default async function handler(req, res) {
-//   if (req.method !== "GET") {
-//     return res.status(405).json({ message: "Method Not Allowed" });
-//   }
-
-//   try {
-//     const { db } = await connectToDatabase();
-
-//     // Fetch all sentiment documents
-//     const sentimentDocs = await db.collection("sentiment").find({}).toArray();
-
-//     const results = sentimentDocs.map((doc) => {
-//       const summary = {
-//         agent_id: doc.agent_id,
-//         positive: 0,
-//         negative: 0,
-//         neutral: 0,
-//         no_response: 0,
-//       };
-
-//       // Loop over each key in the document (e.g., call1, call2, ...)
-//       Object.keys(doc).forEach((key) => {
-//         if (key.startsWith("call") && doc[key]?.sentiment) {
-//           const sentiment = doc[key].sentiment.toLowerCase();
-//           if (summary.hasOwnProperty(sentiment)) {
-//             summary[sentiment]++;
-//           }
-//         }
-//       });
-
-//       return summary;
-//     });
-
-//     return res.status(200).json({ sentiment_summary: results });
-//   } catch (error) {
-//     console.error("❌ Error calculating sentiment analysis:", error);
-//     return res.status(500).json({ message: "Internal Server Error" });
-//   }
-// }
-
-
-// import { connectToDatabase } from "../../../lib/db";
 // import cors from "../../../lib/cors-middleware";
 
 // export default async function handler(req, res) {
-//   // Run CORS first
 //   await cors(req, res);
 
 //   if (req.method !== "GET") {
@@ -55,9 +11,9 @@
 //   try {
 //     const { db } = await connectToDatabase();
 
-//     const sentimentDocs = await db.collection("sentiments").find({}).toArray();
+//     const batchDocs = await db.collection("batch_sentiment").find({}).toArray();
 
-//     const results = sentimentDocs.map((doc) => {
+//     const results = batchDocs.map((doc) => {
 //       const summary = {
 //         agent_id: doc.agent_id,
 //         positive: 0,
@@ -66,21 +22,70 @@
 //         no_response: 0,
 //       };
 
-//       Object.keys(doc).forEach((key) => {
-//         if (key.startsWith("call") && doc[key]?.sentiment) {
-//           const sentiment = doc[key].sentiment.toLowerCase();
+//       for (const batch of doc.batches || []) {
+//         for (const exec of batch.executions || []) {
+//           const sentiment = exec.sentiment?.toLowerCase();
 //           if (summary.hasOwnProperty(sentiment)) {
 //             summary[sentiment]++;
 //           }
 //         }
-//       });
+//       }
 
 //       return summary;
 //     });
 
 //     return res.status(200).json({ sentiment_summary: results });
 //   } catch (error) {
-//     console.error("❌ Error calculating sentiment analysis:", error);
+//     console.error("❌ Error generating batch sentiment summary:", error);
+//     return res.status(500).json({ message: "Internal Server Error" });
+//   }
+// }
+
+
+// import { connectToDatabase } from "../../../lib/db";
+// import cors from "../../../lib/cors-middleware";
+
+// export default async function handler(req, res) {
+//   await cors(req, res);
+
+//   if (req.method !== "GET") {
+//     return res.status(405).json({ message: "Method Not Allowed" });
+//   }
+
+//   try {
+//     const { db } = await connectToDatabase();
+
+//     const batchDocs = await db.collection("batch_sentiment").find({}).toArray();
+
+//     const results = [];
+
+//     for (const doc of batchDocs) {
+//       const agentId = doc.agent_id;
+
+//       for (const batch of doc.batches || []) {
+//         const summary = {
+//           agent_id: agentId,
+//           batch_id: batch.batch_id,
+//           positive: 0,
+//           negative: 0,
+//           neutral: 0,
+//           no_response: 0,
+//         };
+
+//         for (const exec of batch.executions || []) {
+//           const sentiment = exec.sentiment?.toLowerCase();
+//           if (summary.hasOwnProperty(sentiment)) {
+//             summary[sentiment]++;
+//           }
+//         }
+
+//         results.push(summary);
+//       }
+//     }
+
+//     return res.status(200).json({ sentiment_summary: results });
+//   } catch (error) {
+//     console.error("❌ Error generating batch sentiment summary:", error);
 //     return res.status(500).json({ message: "Internal Server Error" });
 //   }
 // }
@@ -98,33 +103,43 @@ export default async function handler(req, res) {
 
   try {
     const { db } = await connectToDatabase();
+    const batchDocs = await db.collection("batch_sentiment").find({}).toArray();
 
-    const sentimentDocs = await db.collection("sentiments").find({}).toArray();
+    const groupedResults = [];
 
-    const results = sentimentDocs.map((doc) => {
-      const summary = {
-        agent_id: doc.agent_id,
-        positive: 0,
-        negative: 0,
-        neutral: 0,
-        no_response: 0,
-      };
+    for (const doc of batchDocs) {
+      const agentId = doc.agent_id;
+      const batches = doc.batches || [];
 
-      if (Array.isArray(doc.executions)) {
-        for (const exec of doc.executions) {
+      const batchSummaries = batches.map((batch) => {
+        const summary = {
+          batch_id: batch.batch_id,
+          positive: 0,
+          negative: 0,
+          neutral: 0,
+          no_response: 0,
+        };
+
+        for (const exec of batch.executions || []) {
           const sentiment = exec.sentiment?.toLowerCase();
           if (summary.hasOwnProperty(sentiment)) {
             summary[sentiment]++;
           }
         }
-      }
 
-      return summary;
-    });
+        return summary;
+      });
 
-    return res.status(200).json({ sentiment_summary: results });
+      groupedResults.push({
+        agent_id: agentId,
+        total_batches: batches.length,
+        batch_summaries: batchSummaries,
+      });
+    }
+
+    return res.status(200).json({ sentiment_summary: groupedResults });
   } catch (error) {
-    console.error("❌ Error calculating sentiment analysis:", error);
+    console.error("❌ Error generating grouped batch sentiment summary:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }

@@ -8,6 +8,7 @@ const Sidebar = () => {
     router.push(path);
   };
 
+
   return (
     <nav
       className="w-64 p-5 min-h-screen"
@@ -18,7 +19,7 @@ const Sidebar = () => {
         <li
           onClick={() => handleNavigation('/campaigns')}
           className="cursor-pointer hover:bg-blue-700 p-2 rounded"
-          style={{ color: 'black' }} // Set text color to black
+          style={{ color: 'black' }} 
         >
           Campaigns
         </li>

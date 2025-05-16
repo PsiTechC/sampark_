@@ -1,347 +1,218 @@
-// import { useEffect, useState } from "react";
-// import Sidebar from "@/components/sidebar"; // <-- Reuse your sidebar
-// import { FaDownload, FaCloud, FaCalendarAlt } from "react-icons/fa";
-
-// export default function CallLogs() {
-//   const agentId = "5ad4dace-34fa-44bd-a184-c7d6fedf737c";
-
-//   const [executions, setExecutions] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-
-//   // Modals
-//   const [selectedTranscript, setSelectedTranscript] = useState(null);
-//   const [selectedRawData, setSelectedRawData] = useState(null);
-
-//   // ===== Fetching Logic =====
-//   const fetchExecutionIds = async () => {
-//     try {
-//       console.log("🔍 Fetching latest execution IDs...");
-//       const response = await fetch(`https://api.bolna.dev/agent/${agentId}/executions`, {
-//         method: "GET",
-//         headers: {
-//           Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
-//         },
-//       });
-
-//       if (!response.ok) {
-//         throw new Error("Failed to fetch execution IDs");
-//       }
-
-//       const data = await response.json();
-//       if (!Array.isArray(data) || data.length === 0) return [];
-
-//       return data.map((execution) => execution.id);
-//     } catch (error) {
-//       console.error("❌ Error fetching execution IDs:", error);
-//       return [];
-//     }
-//   };
-
-//   const fetchBatchCallDetails = async (executionIds) => {
-//     try {
-//       const callsData = await Promise.all(
-//         executionIds.map(async (executionId) => {
-//           console.log(`🔍 Fetching call log for Execution ID: ${executionId}`);
-//           const response = await fetch(`https://api.bolna.dev/executions/${executionId}`, {
-//             method: "GET",
-//             headers: {
-//               Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
-//             },
-//           });
-
-//           return response.ok ? response.json() : null;
-//         })
-//       );
-
-//       return callsData.filter((log) => log !== null);
-//     } catch (error) {
-//       console.error("❌ Error fetching call logs:", error);
-//       return [];
-//     }
-//   };
-
-//   const fetchCallDetails = async () => {
-//     setLoading(true);
-//     setError(null);
-
-//     try {
-//       let executionIds = await fetchExecutionIds();
-//       if (executionIds.length === 0) {
-//         console.log("⚠️ No new execution IDs found.");
-//         setLoading(false);
-//         return;
-//       }
-
-//       // Reverse so the newest is first
-//       executionIds = executionIds.reverse();
-
-//       // Fetch recent 5
-//       const recentBatch = executionIds.slice(0, 5);
-//       const recentCalls = await fetchBatchCallDetails(recentBatch);
-//       const sortedRecent = recentCalls.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-//       setExecutions(sortedRecent);
-
-//       setLoading(false);
-
-//       // Fetch remaining
-//       const remainingBatch = executionIds.slice(5);
-//       if (remainingBatch.length > 0) {
-//         const olderCalls = await fetchBatchCallDetails(remainingBatch);
-//         setExecutions((prev) =>
-//           [...prev, ...olderCalls].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-//         );
-//       }
-//     } catch (error) {
-//       console.error("❌ Error fetching call logs:", error);
-//       setError(error.message);
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchCallDetails();
-//     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, []);
-
-//   // ===== UI =====
-//   return (
-//     <div className="flex min-h-screen bg-gray-50">
-//       {/* Sidebar */}
-//       <Sidebar />
-
-//       {/* Main Content */}
-//       <div className="flex-grow p-6 flex flex-col">
-//         <h2 className="text-2xl font-bold mb-8 text-gray-800">Call Logs</h2>
-
-//         {/* Top Toolbar */}
-//         <div className="flex items-center flex-wrap gap-2 mb-4">
-
-//           {/* Pick a date (placeholder) */}
-//           <div className="flex items-center border border-gray-300 rounded px-2 py-1">
-//             <FaCalendarAlt className="text-gray-500 mr-2" />
-//             <input
-//               type="date"
-//               className="border-none outline-none"
-//               onChange={(e) => {
-//                 // handle date change
-//                 console.log("Selected date:", e.target.value);
-//               }}
-//             />
-//           </div>
-
-//           {/* Fetch Records */}
-//           <button
-//             onClick={fetchCallDetails}
-//             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-//           >
-//             Fetch records
-//           </button>
-
-//         </div>
-
-//         {/* Call Logs Table */}
-//         <div className="flex-1 overflow-auto border border-gray-300 bg-white shadow-md rounded-lg">
-//           {loading ? (
-//             <p className="text-gray-600 p-4">Loading recent calls...</p>
-//           ) : error ? (
-//             <p className="text-red-500 p-4">Error: {error}</p>
-//           ) : executions.length === 0 ? (
-//             <p className="text-gray-600 p-4">No calls made yet.</p>
-//           ) : (
-//             <table className="min-w-full text-sm">
-//               <thead className="bg-gray-100 text-gray-700">
-//                 <tr>
-//                   <th className="border px-4 py-3 text-left">Execution ID</th>
-//                   <th className="border px-4 py-3 text-left">Conversation Type</th>
-//                   <th className="border px-4 py-3 text-left">Duration (seconds)</th>
-
-//                   <th className="border px-4 py-3 text-left">Timestamp</th>
-//                   <th className="border px-4 py-3 text-left">Cost (in dollars)</th>
-//                   <th className="border px-4 py-3 text-left">Status</th>
-//                   <th className="border px-4 py-3 text-left">Conversation Logs</th>
-//                   <th className="border px-4 py-3 text-left">Execution Logs</th>
-//                   <th className="border px-4 py-3 text-left">Raw Payload</th>
-//                 </tr>
-//               </thead>
-//               <tbody>
-//                 {executions.map((log, index) => {
-//                   const direction = log.telephony_data?.direction || "outbound";
-//                   const duration = log.conversation_duration
-//                     ? log.conversation_duration.toFixed(1)
-//                     : "N/A";
-//                   const timestamp = new Date(log.created_at).toLocaleString();
-//                   const cost = log.telephony_data?.cost
-//                     ? `$${log.telephony_data.cost}`
-//                     : "$0.00"; // or "N/A"
-//                   const status = log.status || "N/A";
-
-//                   return (
-//                     <tr key={index} className="border hover:bg-gray-50 transition">
-//                       {/* Execution ID */}
-//                       <td className="border px-4 py-2">{log.id || "N/A"}</td>
-
-//                       {/* Conversation Type */}
-//                       <td className="border px-4 py-2">
-//                         {log.telephony_data?.provider || "twilio"} {direction}
-//                       </td>
-
-//                       {/* Duration */}
-//                       <td className="border px-4 py-2 text-center">{duration}</td>
-
-//                       {/* Batch (Placeholder) */}
-//                       <td className="border px-4 py-2">Batch #1</td>
-
-//                       {/* Timestamp */}
-//                       <td className="border px-4 py-2">{timestamp}</td>
-
-//                       {/* Cost */}
-//                       <td className="border px-4 py-2">{cost}</td>
-
-//                       {/* Status */}
-//                       <td className="border px-4 py-2">{status}</td>
-
-//                       {/* Conversation Logs (Recordings, transcripts, etc) */}
-//                       <td className="border px-4 py-2">
-//                         {log.telephony_data?.recording_url || log.transcript ? (
-//                           <button
-//                             className="text-blue-600 underline"
-//                             onClick={() => {
-//                               // For example, open a modal with call recordings or transcripts
-//                               setSelectedTranscript(log);
-//                             }}
-//                           >
-//                             Recordings, transcripts, etc
-//                           </button>
-//                         ) : (
-//                           "—"
-//                         )}
-//                       </td>
-
-//                       {/* Execution Logs (Placeholder) */}
-//                       <td className="border px-4 py-2">
-//                         <button
-//                           className="text-blue-600 underline"
-//                           onClick={() => {
-//                             // e.g. open a "More info" modal or logs
-//                             alert("Execution logs for: " + (log.id || "N/A"));
-//                           }}
-//                         >
-//                           More info
-//                         </button>
-//                       </td>
-
-//                       {/* Raw Payload */}
-//                       <td className="border px-4 py-2">
-//                         <button
-//                           onClick={() => setSelectedRawData(log)}
-//                           className="text-blue-600 underline"
-//                         >
-//                           Show raw
-//                         </button>
-//                       </td>
-//                     </tr>
-//                   );
-//                 })}
-//               </tbody>
-//             </table>
-//           )}
-//         </div>
-
-//         {/* Transcript Modal */}
-//         {selectedTranscript && (
-//           <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
-//             <div className="bg-white p-6 rounded-md shadow-lg max-w-2xl w-full">
-//               <h2 className="text-lg font-semibold mb-4">Call Transcript</h2>
-
-//               {selectedTranscript.transcript ? (
-//                 <pre className="border p-3 rounded-md max-h-60 overflow-auto text-gray-700">
-//                   {selectedTranscript.transcript}
-//                 </pre>
-//               ) : (
-//                 <p className="text-gray-600">No transcript available.</p>
-//               )}
-
-//               {/* If there's a recording */}
-//               {selectedTranscript.telephony_data?.recording_url && (
-//                 <div className="mt-4">
-//                   <h3 className="font-bold text-lg">🔊 Call Recording</h3>
-//                   <audio controls className="w-full mt-1">
-//                     <source
-//                       src={selectedTranscript.telephony_data.recording_url}
-//                       type="audio/mp3"
-//                     />
-//                     Your browser does not support the audio element.
-//                   </audio>
-//                 </div>
-//               )}
-
-//               <button
-//                 onClick={() => setSelectedTranscript(null)}
-//                 className="mt-4 text-gray-800 underline"
-//               >
-//                 Close
-//               </button>
-//             </div>
-//           </div>
-//         )}
-
-//         {/* Raw Data Modal */}
-//         {selectedRawData && (
-//           <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
-//             <div className="bg-white p-6 rounded-md shadow-lg max-w-2xl w-full">
-//               <h2 className="text-lg font-semibold mb-4">Raw Execution Data</h2>
-//               <pre className="border p-3 rounded-md max-h-60 overflow-auto text-gray-700">
-//                 {JSON.stringify(selectedRawData, null, 2)}
-//               </pre>
-//               <button
-//                 onClick={() => setSelectedRawData(null)}
-//                 className="mt-4 text-gray-800 underline"
-//               >
-//                 Close
-//               </button>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/sidebar";
-import { FaCalendarAlt } from "react-icons/fa";
+import Sidebar from "@/components/sidebar"; // <-- Reuse your sidebar
+import { FaDownload, FaCloud, FaCalendarAlt, FaHourglassStart } from "react-icons/fa";
+import DatePicker from "react-datepicker";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+
 
 export default function CallLogs() {
-  const [agentId, setAgentId] = useState("5ad4dace-34fa-44bd-a184-c7d6fedf737c");
-  const [agents, setAgents] = useState([]);
+  const agentId = "-";
 
   const [executions, setExecutions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [platform, setPlatform] = useState("vapi");
+  const [agents, setAgents] = useState([]);
+  const [selectedAgentId, setSelectedAgentId] = useState("-");
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [vapiAgents, setVapiAgents] = useState([]);
+  const [bolnaAgents, setBolnaAgents] = useState([]);
+  const [executionQueue, setExecutionQueue] = useState([]);
+  const [userDataMap, setUserDataMap] = useState({});
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [durationSortOrder, setDurationSortOrder] = useState(null);
+  const [showDurationSortMenu, setShowDurationSortMenu] = useState(false);
+  const [timestampSortOrder, setTimestampSortOrder] = useState("desc");
 
+
+
+
+
+
+  const isWithinDateRange = (timestamp) => {
+    if (!startDate || !endDate) return true;
+    const date = new Date(timestamp);
+    return date >= startDate && date <= endDate;
+  };
+
+
+
+  const getShortSummary = (text) => {
+    if (!text) return "—";
+    const words = text.trim().split(/\s+/);
+    const firstLine = words.slice(0, 5).join(" ");
+    const secondLine = words.slice(5, 12).join(" ");
+    return (
+      <>
+        <span>{firstLine}</span>
+        <br />
+        <span>{secondLine}{words.length > 12 ? "..." : ""}</span>
+      </>
+    );
+  };
+
+
+
+
+  // Modals
   const [selectedTranscript, setSelectedTranscript] = useState(null);
-  const [selectedRawData, setSelectedRawData] = useState(null);
 
-  // Fetch agents
+  const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  // useEffect(() => {
+  //   const fetchUserDataAndThenCallMap = async () => {
+  //     try {
+  //       const callUserMap = {};
+  
+  
+  //       const fetchUserData = fetch(`${BASE_URL}/api/clients/fetchUserData`).then(async (res) => {
+  //         await res.json();
+  //         const res2 = await fetch(`${BASE_URL}/api/clients/userDataFromCall`);
+  //         const userDataFromCall = await res2.json();
+  
+  //         (userDataFromCall.data || []).forEach((entry) => {
+  //           const assistantId = entry.assistantId;
+  //           const callData = entry.data || {};
+  //           Object.entries(callData).forEach(([callId, userDetails]) => {
+  //             callUserMap[callId] = userDetails;
+  //           });
+  //         });
+  //       });
+  
+  //       const fetchUserDataBolna = fetch(`${BASE_URL}/api/clients/fetchUserDataBolna`).then(async (res) => {
+  //         await res.json();
+  //         const res4 = await fetch(`${BASE_URL}/api/clients/getUserDataB`);
+  //         const getUserDataB = await res4.json();
+  
+  //         (getUserDataB.data || []).forEach((entry) => {
+  //           const assistantId = entry.assistantId;
+  //           const callData = entry.data || {};
+  //           Object.entries(callData).forEach(([callId, userDetails]) => {
+  //             callUserMap[callId] = userDetails;
+  //           });
+  //         });
+  //       });
+  
+  //       // Start both fetches in parallel and wait for both to finish
+  //       await Promise.all([fetchUserData, fetchUserDataBolna]);
+  
+  //       setUserDataMap(callUserMap);
+  
+  //     } catch (err) {
+  //       console.error("❌ Error in chained user data fetch:", err);
+  //     }
+  //   };
+  
+  //   fetchUserDataAndThenCallMap();
+  // }, []);
+  
   useEffect(() => {
-    const fetchAgents = async () => {
+    const fetchUserDataAndThenCallMap = async () => {
       try {
-        const res = await fetch('https://api.bolna.dev/v2/agent/all', {
-          headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}` },
+        const callUserMap = {};
+  
+        // Step 1: Fetch initial user data
+        const res = await fetch(`${BASE_URL}/api/clients/fetchUserData`);
+        if (!res.ok) throw new Error("Failed to fetch user data");
+  
+        await res.json(); // Ignoring the response since it's just a trigger
+  
+        // Step 2: Now fetch user data from call
+        const res2 = await fetch(`${BASE_URL}/api/clients/userDataFromCall`);
+        const userDataFromCall = await res2.json();
+  
+        (userDataFromCall.data || []).forEach((entry) => {
+          const assistantId = entry.assistantId;
+          const callData = entry.data || {};
+          Object.entries(callData).forEach(([callId, userDetails]) => {
+            callUserMap[callId] = userDetails;
+          });
         });
-        const data = await res.json();
-        setAgents(data);
+  
+        // Step 3: Set the final map
+        setUserDataMap(callUserMap);
+  
       } catch (err) {
-        console.error('Failed to fetch agents', err);
+        console.error("❌ Error in chained user data fetch:", err);
       }
     };
-    fetchAgents();
+  
+    fetchUserDataAndThenCallMap();
+  }, []);
+  
+  
+  useEffect(() => {
+    const fetchBothAgents = async () => {
+      try {
+        const [vapiRes, bolnaRes] = await Promise.all([
+          fetch("https://api.vapi.ai/assistant", {
+            headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}` },
+          }),
+          fetch("https://api.bolna.dev/v2/agent/all", {
+            headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}` },
+          }),
+        ]);
+
+        const vapiData = await vapiRes.json();
+        const bolnaData = await bolnaRes.json();
+
+        const formattedVapi = vapiData.map((item) => ({
+          id: item.id,
+          agent_name: item.name,
+        }));
+
+        const formattedBolna = bolnaData.map((item) => ({
+          id: item.id,
+          agent_name: item.agent_name,
+        }));
+
+        setVapiAgents(formattedVapi);
+        setBolnaAgents(formattedBolna);
+
+        // Set default based on platform
+        const initialAgents = platform === "vapi" ? formattedVapi : formattedBolna;
+        setAgents(initialAgents);
+        setSelectedAgentId(initialAgents[0]?.id || "-");
+      } catch (err) {
+        console.error("Error fetching agents:", err);
+      }
+    };
+
+    fetchBothAgents();
   }, []);
 
+  const fetchVapiCallDetails = async (assistantId) => {
+    try {
+      const response = await fetch(`https://api.vapi.ai/call?assistantId=${assistantId}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
+        },
+      });
+      const data = await response.json();
+      console.log("Vapi Calls:", data);
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error("❌ Error fetching Vapi call logs:", error);
+      return [];
+    }
+  };
+
+
+  useEffect(() => {
+    const selectedSet = platform === "vapi" ? vapiAgents : bolnaAgents;
+    setAgents(selectedSet);
+    setSelectedAgentId(selectedSet[0]?.id || "-");
+  }, [platform, vapiAgents, bolnaAgents]);
+
+
+  // ===== Fetching Logic =====
   const fetchExecutionIds = async () => {
     try {
-      const response = await fetch(`https://api.bolna.dev/agent/${agentId}/executions`, {
+      console.log("🔍 Fetching latest execution IDs...");
+      const response = await fetch(`https://api.bolna.dev/agent/${selectedAgentId}/executions`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
@@ -353,8 +224,6 @@ export default function CallLogs() {
       }
 
       const data = await response.json();
-      console.log(data);
-
       if (!Array.isArray(data) || data.length === 0) return [];
 
       return data.map((execution) => execution.id);
@@ -364,16 +233,40 @@ export default function CallLogs() {
     }
   };
 
+  function formatUTCtoISTReadable(utcDateString) {
+    if (!utcDateString) return "N/A";
+    const utcDate = new Date(utcDateString);
+  
+    // IST = UTC + 5 hours 30 minutes
+    const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+    const istTime = new Date(utcDate.getTime() + istOffset);
+  
+    return istTime.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  }
+  
+  
+  
+
   const fetchBatchCallDetails = async (executionIds) => {
     try {
       const callsData = await Promise.all(
         executionIds.map(async (executionId) => {
+          console.log(`🔍 Fetching call log for Execution ID: ${executionId}`);
           const response = await fetch(`https://api.bolna.dev/executions/${executionId}`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
             },
           });
+
           return response.ok ? response.json() : null;
         })
       );
@@ -385,31 +278,25 @@ export default function CallLogs() {
     }
   };
 
+
   const fetchCallDetails = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      let executionIds = await fetchExecutionIds();
+      const executionIds = await fetchExecutionIds();
       if (executionIds.length === 0) {
         setLoading(false);
         return;
       }
 
-      executionIds = executionIds.reverse();
-      const recentBatch = executionIds.slice(0, 5);
-      const recentCalls = await fetchBatchCallDetails(recentBatch);
-      const sortedRecent = recentCalls.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setExecutions(sortedRecent);
-      setLoading(false);
+      const firstBatch = executionIds.slice(0, 10);
+      const queue = executionIds.slice(10);
+      const firstCalls = await fetchBatchCallDetails(firstBatch);
 
-      const remainingBatch = executionIds.slice(5);
-      if (remainingBatch.length > 0) {
-        const olderCalls = await fetchBatchCallDetails(remainingBatch);
-        setExecutions((prev) =>
-          [...prev, ...olderCalls].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        );
-      }
+      setExecutions(firstCalls);
+      setExecutionQueue(queue);
+      setLoading(false);
     } catch (error) {
       console.error("❌ Error fetching call logs:", error);
       setError(error.message);
@@ -417,131 +304,372 @@ export default function CallLogs() {
     }
   };
 
-  useEffect(() => {
-    fetchCallDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentId]);
 
+  useEffect(() => {
+    if (!selectedAgentId) return;
+
+    if (platform === "bolna") {
+      fetchCallDetails(); // your bolna function
+    } else {
+      setLoading(true);
+      fetchVapiCallDetails(selectedAgentId).then((calls) => {
+        setExecutions(calls);
+        setLoading(false);
+      });
+    }
+  }, [selectedAgentId]);
+
+
+
+
+  useEffect(() => {
+    const container = document.getElementById("scroll-container");
+
+    const handleScroll = async () => {
+      if (!container || loadingMore || executionQueue.length === 0) return;
+
+      if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
+        setLoadingMore(true);
+
+        const nextBatch = executionQueue.slice(0, 10);
+        const remaining = executionQueue.slice(10);
+        const newCalls = await fetchBatchCallDetails(nextBatch);
+
+        setExecutions((prev) => [...prev, ...newCalls]);
+        setExecutionQueue(remaining);
+        setLoadingMore(false);
+      }
+    };
+
+    container?.addEventListener("scroll", handleScroll);
+    return () => container?.removeEventListener("scroll", handleScroll);
+  }, [executionQueue, loadingMore]);
+
+  // ===== UI =====
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
       <Sidebar />
+
+      {/* Main Content */}
       <div className="flex-grow p-6 flex flex-col">
         <h2 className="text-2xl font-bold mb-8 text-gray-800">Call Logs</h2>
 
-        {/* Toolbar */}
-        <div className="flex items-center flex-wrap gap-2 mb-4">
-          {/* Date Picker */}
-          <div className="flex items-center border border-gray-300 rounded px-2 py-1">
-            <FaCalendarAlt className="text-gray-500 mr-2" />
-            <input
-              type="date"
-              className="border-none outline-none"
-              onChange={(e) => {
-                console.log("Selected date:", e.target.value);
-              }}
-            />
+        {/* Top Toolbar */}
+        <div className="flex items-center flex-wrap gap-4 mb-6">
+
+          {/* Platform Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+            <select
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+              className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700"
+            >
+              <option value="vapi">Vapi</option>
+              <option value="bolna">Bolna</option>
+            </select>
           </div>
 
-          <select
-            className="border border-gray-300 rounded px-3 py-1"
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-          >
-            {agents.length === 0 ? (
-              <option>Loading agents...</option>
-            ) : (
-              agents.map((agent) => (
+          {/* Agent Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+            <select
+              value={selectedAgentId}
+              onChange={(e) => setSelectedAgentId(e.target.value)}
+              className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700"
+              disabled={agents.length === 0}
+            >
+              {agents.map((agent) => (
                 <option key={agent.id} value={agent.id}>
-                  {agent.agent_name || agent.id}
+                  {agent.agent_name}
                 </option>
-              ))
-            )}
-          </select>
+              ))}
+            </select>
+          </div>
+          {/* Timestamp Sort Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sort</label>
+            <select
+              value={timestampSortOrder}
+              onChange={(e) => setTimestampSortOrder(e.target.value)}
+              className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700"
+            >
+              <option value="desc">Latest to Oldest</option>
+              <option value="asc">Oldest to Latest</option>
+            </select>
+          </div>
 
         </div>
 
-        {/* Table */}
-        <div className="flex-1 overflow-auto border border-gray-300 bg-white shadow-md rounded-lg">
+
+        {/* Call Logs Table */}
+        <div id="scroll-container" className="flex-1 overflow-y-auto border border-gray-300 bg-white shadow-md rounded-lg max-h-[80vh]">
+
           {loading ? (
-            <p className="text-gray-600 p-4">Loading recent calls...</p>
+            <div className="flex justify-center items-center p-8">
+              <div className="loader"></div>
+            </div>
           ) : error ? (
             <p className="text-red-500 p-4">Error: {error}</p>
           ) : executions.length === 0 ? (
             <p className="text-gray-600 p-4">No calls made yet.</p>
           ) : (
-            <table className="min-w-full text-sm">
+            <div className="overflow-x-auto ">
+            <table className="min-full text-sm table-fixed">
               <thead className="bg-gray-100 text-gray-700">
                 <tr>
-                  {/* <th className="border px-4 py-3 text-left">Execution ID</th> */}
-                  {/* <th className="border px-4 py-3 text-left">Conversation Type</th> */}
-                  <th className="border px-4 py-3 text-left">Duration (seconds)</th>
-                  <th className="border px-4 py-3 text-left">Timestamp</th>
+                  <th className="border px-4 py-3 text-left">
+                    <div className="flex items-center justify-between">
+                      <span>Timestamp</span>
+                      <button
+                        className="text-blue-600 ml-2"
+                        onClick={() => setIsDateModalOpen(true)}
+                        title="Filter by date"
+                      >
+                        <FaCalendarAlt />
+                      </button>
+                    </div>
+                  </th>
+                  <th className="border px-4 py-3 text-left">Phone Number#</th>
+                  <th className="border px-4 py-3 text-left">Conversation Type</th>
+                  <th className="border px-4 py-3 text-left relative">
+                    <div className="flex items-center justify-between">
+                      <span>Duration (seconds)</span>
+                      <div className="relative">
+                        <button
+                          className="ml-2 text-blue-600"
+                          onClick={() => setShowDurationSortMenu((prev) => !prev)}
+                          title="Sort options"
+                        >
+                          <FaHourglassStart />
+                        </button>
+
+                        {showDurationSortMenu && (
+                          <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded shadow-lg z-50">
+                            <button
+                              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                              onClick={() => {
+                                setDurationSortOrder("asc");
+                                setShowDurationSortMenu(false);
+                              }}
+                            >
+                              Low to High
+                            </button>
+                            <button
+                              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                              onClick={() => {
+                                setDurationSortOrder("desc");
+                                setShowDurationSortMenu(false);
+                              }}
+                            >
+                              High to Low
+                            </button>
+                            <button
+                              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-500"
+                              onClick={() => {
+                                setDurationSortOrder(null);
+                                setShowDurationSortMenu(false);
+                              }}
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </th>
+                  <th className="border px-4 py-3 text-left">Unique Call ID</th>
+                  <th className="border px-4 py-3 text-left">Customer Sentiment</th>
+
+                  <th className="border px-4 py-3 text-left">Conversation Logs</th>
+
                   <th className="border px-4 py-3 text-left">Cost (in dollars)</th>
-                  <th className="border px-4 py-3 text-left">Status</th>
-                  {/* <th className="border px-4 py-3 text-left">Conversation Logs</th> */}
-                  {/* <th className="border px-4 py-3 text-left">Execution Logs</th> */}
-                  {/* <th className="border px-4 py-3 text-left">Raw Payload</th> */}
+                  {/* <th className="border px-4 py-3 text-left">Status</th> */}
+                  <th className="border px-4 py-3 text-left">Summary</th>
+                  <th className="border px-4 py-3 text-left">Customer Data</th>
+
                 </tr>
               </thead>
               <tbody>
-                {executions.map((log, index) => {
-                  const direction = log.telephony_data?.direction || "outbound";
-                  const duration = log.conversation_duration
-                    ? log.conversation_duration.toFixed(1)
-                    : "N/A";
-                  const timestamp = new Date(log.created_at).toLocaleString();
-                  const total_cost = log.total_cost
-                    ? `$${(log.total_cost / 100).toFixed(2)}`
-                    : "$0.00";
+                {executions
+                  .filter((log) => isWithinDateRange(log.createdAt || log.created_at))
+                  .sort((a, b) => {
+                    // Duration sort has priority
+                    if (durationSortOrder) {
+                      const getDuration = (log) => {
+                        if (platform === "vapi") {
+                          if (log.startedAt && log.endedAt) {
+                            return new Date(log.endedAt) - new Date(log.startedAt);
+                          }
+                        } else {
+                          return log.conversation_duration || 0;
+                        }
+                        return 0;
+                      };
 
-                  const status = log.status || "N/A";
+                      const durationA = getDuration(a);
+                      const durationB = getDuration(b);
 
-                  return (
-                    <tr key={index} className="border hover:bg-gray-50 transition">
-                      {/* <td className="border px-4 py-2">{log.id || "N/A"}</td> */}
-                      {/* <td className="border px-4 py-2">
-                        {log.telephony_data?.provider || "twilio"} {direction}
-                      </td> */}
-                      <td className="border px-4 py-2 text-center">{duration}</td>
-                      <td className="border px-4 py-2">{timestamp}</td>
-                      <td className="border px-4 py-2">
-                        {log.total_cost ? `$${(log.total_cost / 100).toFixed(2)}` : "$0.00"}
-                      </td>
+                      return durationSortOrder === "asc" ? durationA - durationB : durationB - durationA;
+                    }
 
-                      <td className="border px-4 py-2">{status}</td>
-                      {/* <td className="border px-4 py-2">
-                        {log.telephony_data?.recording_url || log.transcript ? (
-                          <button
-                            className="text-blue-600 underline"
-                            onClick={() => setSelectedTranscript(log)}
-                          >
-                            Recordings, transcripts, etc
-                          </button>
-                        ) : (
-                          "—"
-                        )}
-                      </td> */}
-                      {/* <td className="border px-4 py-2">
-                        <button
-                          className="text-blue-600 underline"
-                          onClick={() => alert("Execution logs for: " + (log.id || "N/A"))}
-                        >
-                          More info
-                        </button>
-                      </td>
-                      <td className="border px-4 py-2">
-                        <button
-                          onClick={() => setSelectedRawData(log)}
-                          className="text-blue-600 underline"
-                        >
-                          Show raw
-                        </button>
-                      </td> */}
-                    </tr>
-                  );
-                })}
+                    // Fallback to timestamp sort
+                    const timeA = new Date(a.createdAt || a.created_at).getTime();
+                    const timeB = new Date(b.createdAt || b.created_at).getTime();
+                    return timestampSortOrder === "asc" ? timeA - timeB : timeB - timeA;
+                  })
+
+                  .map((log, index) => {
+
+                    const isVapi = platform === "vapi";
+                    const direction = isVapi
+                      ? log.type === "outboundPhoneCall"
+                        ? "outbound"
+                        : log.type === "inboundPhoneCall"
+                          ? "inbound"
+                          : "N/A"
+                      : log.telephony_data?.call_type || "outbound";
+
+                    const duration = isVapi
+                      ? log.startedAt && log.endedAt
+                        ? ((new Date(log.endedAt) - new Date(log.startedAt)) / 1000).toFixed(1)
+                        : "N/A"
+                      : log.conversation_duration
+                        ? log.conversation_duration.toFixed(1)
+                        : "N/A";
+                        const timestamp = formatUTCtoISTReadable(log.createdAt || log.created_at);
+
+                    const cost = isVapi
+                      ? `$${(log.cost || 0).toFixed(2)}`
+                      : typeof log.total_cost === "number"
+                        ? `$${(log.total_cost / 100).toFixed(2)}`
+                        : "$0.00";
+                    const status = (log.status === "error" || log.status === "failed") ? "unreachable" : log.status || "N/A";
+                    const phoneNumber = isVapi ? log.customer?.number || "N/A" : log.telephony_data?.to_number || log.context_details?.recipient_phone_number || "N/A";
+
+                    return (
+                      <tr key={index} className="border hover:bg-gray-50 transition">
+                        <td className="border px-4 py-2 break-words">{timestamp}</td>
+                        <td className="border px-2 py-2 break-words">{phoneNumber}</td>
+                        <td className="border px-2 py-2 break-words">{direction}</td>
+                        <td className="border px-2 py-2 text-center break-words">{duration}</td>
+                        <td className="border px-4 py-2 break-words">{log.id || "N/A"}</td>
+                        <td className="border px-4 py-2 break-words">
+                          {userDataMap[log.id]?.sentiment || "—"}
+                        </td>
+
+                        <td className="border px-4 py-2">
+                          {log.recordingUrl || log.telephony_data?.recording_url || log.transcript ? (
+                            <button
+                              className="text-blue-600 underline"
+                              onClick={() => setSelectedTranscript(log)}
+                            >
+                              Recordings, transcripts, etc
+                            </button>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="border px-4 py-2">{cost}</td>
+                        {/* <td className="border px-4 py-2">{status}</td> */}
+                        <td className="border px-4 py-2 max-w-xs relative group">
+                          <div className="whitespace-normal text-gray-800 leading-snug">
+                            {getShortSummary(log.summary)}
+                          </div>
+                          {log.summary && (
+                            <div className="absolute z-10 hidden group-hover:block bg-white border border-gray-300 p-2 rounded shadow-md text-sm text-gray-900 w-64 top-full left-0 -translate-x-20 mt-1 whitespace-normal">
+                              {log.summary}
+                            </div>
+                          )}
+                        </td>
+                        <td className="border px-4 py-2 whitespace-normal text-gray-800 leading-snug text-sm">
+                          {(() => {
+                            const userData = userDataMap[log.id];
+                            if (!userData) return "—";
+
+                            const entries = Object.entries(userData).filter(
+                              ([key, value]) => value && value !== "-" && key !== "sentiment"
+                            );
+                            
+
+                            return entries.length === 0
+                              ? "—"
+                              : entries.map(([key, value]) => (
+                                <div key={key}>
+                                  <strong>{key}:</strong> {value}
+                                </div>
+                              ));
+                          })()}
+                        </td>
+
+                      </tr>
+
+                    );
+                  })}
+
+                {loadingMore && (
+                  <tr>
+                    <td colSpan="9" className="py-4 text-center">
+                      <div className="loader"></div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
-            </table>
+
+              {isDateModalOpen && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+                  <div className="bg-white rounded-lg p-6 shadow-lg max-w-md w-full">
+                    <h2 className="text-lg font-semibold mb-4 text-gray-800">Filter by Date Range</h2>
+
+                    <div className="mb-4">
+                      <label className="block mb-1 text-gray-700 font-medium">Start Date</label>
+                      <DatePicker
+                        selected={startDate}
+                        onChange={(date) => setStartDate(date)}
+                        className="w-full border border-gray-300 px-3 py-2 rounded text-sm"
+                        dateFormat="yyyy-MM-dd"
+                        maxDate={endDate || new Date()}
+                        placeholderText="Select start date"
+                      />
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="block mb-1 text-gray-700 font-medium">End Date</label>
+                      <DatePicker
+                        selected={endDate}
+                        onChange={(date) => setEndDate(date)}
+                        className="w-full border border-gray-300 px-3 py-2 rounded text-sm"
+                        dateFormat="yyyy-MM-dd"
+                        minDate={startDate}
+                        maxDate={new Date()}
+                        placeholderText="Select end date"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-4">
+                      <button
+                        onClick={() => {
+                          setStartDate(null);
+                          setEndDate(null);
+                          setIsDateModalOpen(false);
+                        }}
+                        className="px-4 py-2 text-sm rounded bg-gray-100 text-gray-800 hover:bg-gray-200"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        onClick={() => setIsDateModalOpen(false)}
+                        className="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Apply Filter
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </table>    </div>
           )}
         </div>
 
@@ -550,25 +678,37 @@ export default function CallLogs() {
           <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
             <div className="bg-white p-6 rounded-md shadow-lg max-w-2xl w-full">
               <h2 className="text-lg font-semibold mb-4">Call Transcript</h2>
+
               {selectedTranscript.transcript ? (
-                <pre className="border p-3 rounded-md max-h-60 overflow-auto text-gray-700">
-                  {selectedTranscript.transcript}
-                </pre>
+                <div className="border p-3 rounded-md max-h-60 overflow-y-auto overflow-x-hidden text-gray-700 whitespace-pre-wrap break-words">
+                  {selectedTranscript.transcript
+                    .split(/(?=AI:|User:)/i)
+                    .map((segment, index) => (
+                      <div key={index} className="mb-2">
+                        {segment.trim()}
+                      </div>
+                    ))}
+                </div>
+
+
               ) : (
                 <p className="text-gray-600">No transcript available.</p>
               )}
-              {selectedTranscript.telephony_data?.recording_url && (
+
+              {(selectedTranscript.telephony_data?.recording_url || selectedTranscript.recordingUrl) && (
                 <div className="mt-4">
                   <h3 className="font-bold text-lg">🔊 Call Recording</h3>
                   <audio controls className="w-full mt-1">
                     <source
-                      src={selectedTranscript.telephony_data.recording_url}
+                      src={selectedTranscript.telephony_data?.recording_url || selectedTranscript.recordingUrl}
                       type="audio/mp3"
                     />
                     Your browser does not support the audio element.
                   </audio>
                 </div>
               )}
+
+
               <button
                 onClick={() => setSelectedTranscript(null)}
                 className="mt-4 text-gray-800 underline"
@@ -579,23 +719,7 @@ export default function CallLogs() {
           </div>
         )}
 
-        {/* Raw Modal */}
-        {selectedRawData && (
-          <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
-            <div className="bg-white p-6 rounded-md shadow-lg max-w-2xl w-full">
-              <h2 className="text-lg font-semibold mb-4">Raw Execution Data</h2>
-              <pre className="border p-3 rounded-md max-h-60 overflow-auto text-gray-700">
-                {JSON.stringify(selectedRawData, null, 2)}
-              </pre>
-              <button
-                onClick={() => setSelectedRawData(null)}
-                className="mt-4 text-gray-800 underline"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );
