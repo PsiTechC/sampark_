@@ -57,57 +57,9 @@ export default function CallLogs() {
 
 
 
-  // Modals
   const [selectedTranscript, setSelectedTranscript] = useState(null);
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  // useEffect(() => {
-  //   const fetchUserDataAndThenCallMap = async () => {
-  //     try {
-  //       const callUserMap = {};
-  
-  
-  //       const fetchUserData = fetch(`${BASE_URL}/api/clients/fetchUserData`).then(async (res) => {
-  //         await res.json();
-  //         const res2 = await fetch(`${BASE_URL}/api/clients/userDataFromCall`);
-  //         const userDataFromCall = await res2.json();
-  
-  //         (userDataFromCall.data || []).forEach((entry) => {
-  //           const assistantId = entry.assistantId;
-  //           const callData = entry.data || {};
-  //           Object.entries(callData).forEach(([callId, userDetails]) => {
-  //             callUserMap[callId] = userDetails;
-  //           });
-  //         });
-  //       });
-  
-  //       const fetchUserDataBolna = fetch(`${BASE_URL}/api/clients/fetchUserDataBolna`).then(async (res) => {
-  //         await res.json();
-  //         const res4 = await fetch(`${BASE_URL}/api/clients/getUserDataB`);
-  //         const getUserDataB = await res4.json();
-  
-  //         (getUserDataB.data || []).forEach((entry) => {
-  //           const assistantId = entry.assistantId;
-  //           const callData = entry.data || {};
-  //           Object.entries(callData).forEach(([callId, userDetails]) => {
-  //             callUserMap[callId] = userDetails;
-  //           });
-  //         });
-  //       });
-  
-  //       // Start both fetches in parallel and wait for both to finish
-  //       await Promise.all([fetchUserData, fetchUserDataBolna]);
-  
-  //       setUserDataMap(callUserMap);
-  
-  //     } catch (err) {
-  //       console.error("❌ Error in chained user data fetch:", err);
-  //     }
-  //   };
-  
-  //   fetchUserDataAndThenCallMap();
-  // }, []);
   
   useEffect(() => {
     const fetchUserDataAndThenCallMap = async () => {
@@ -588,18 +540,34 @@ export default function CallLogs() {
                             const userData = userDataMap[log.id];
                             if (!userData) return "—";
 
+                            const allowedKeys = ["name", "email", "appointmentDate", "purpose"];
                             const entries = Object.entries(userData).filter(
-                              ([key, value]) => value && value !== "-" && key !== "sentiment"
+                              ([key, value]) => allowedKeys.includes(key) && value && value !== "-"
                             );
                             
-
+                            const formatDate = (raw) => {
+                              const date = new Date(raw);
+                              return isNaN(date.getTime())
+                                ? raw
+                                : date.toLocaleString("en-IN", {
+                                    weekday: "short",
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  });
+                            };
+                            
                             return entries.length === 0
                               ? "—"
                               : entries.map(([key, value]) => (
-                                <div key={key}>
-                                  <strong>{key}:</strong> {value}
-                                </div>
-                              ));
+                                  <div key={key}>
+                                    <strong>{key}:</strong>{" "}
+                                    {key === "appointmentDate" ? formatDate(value) : value}
+                                  </div>
+                                ));
+                            
                           })()}
                         </td>
 

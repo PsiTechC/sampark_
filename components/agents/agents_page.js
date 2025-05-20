@@ -43,7 +43,7 @@ export default function CreateAgent() {
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
-      voice: voiceOptions[market][0] || "", // Set default voice for selected market
+      voice: voiceOptions[market][0] || "", 
     }));
   }, [market]);
 
@@ -193,7 +193,17 @@ export default function CreateAgent() {
         setAlert({ type: "error", message: `❌ ${errorMessage}`, visible: true });
       } else {
         setAlert({ type: "success", message: "✅ Agent created successfully!", visible: true });
+        if (data?.id) {
+          await fetch("/api/map/usernewagents", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ agentId: data.id }),
+          });
+        }
       }
+      
 
 
     } catch (error) {

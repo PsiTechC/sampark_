@@ -3,14 +3,17 @@ import CorsMiddleware from "../../../lib/cors-middleware";
 
 
 export async function sendingWhatsapp(number, pdfUrl) {
-  console.log(`Sending WA message via your API to ${number}..., url ${pdfUrl}`);
+  console.log(`📤 Sending WA message with document to ${number}... URL: ${pdfUrl}`);
 
   const apiUrl = 'https://whatsapp-api-backend-production.up.railway.app/api/send-message';
 
   const requestBody = {
-    toNumber: number,
-    parameters: [pdfUrl],
-    templateId: "ava_psitech_template",
+    to_number: number,
+    media_url: pdfUrl,
+    parameters: ["+91999999999"], 
+    messages: null,
+    template_name: "ava_demo_v1",
+    whatsappRequestType: "TEMPLATE_WITH_DOCUMENT",
   };
 
   try {
@@ -19,6 +22,7 @@ export async function sendingWhatsapp(number, pdfUrl) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.WHATSAPP_API_KEY,
+        'Authorization': `Bearer ${process.env.WHATSAPP_BEARER_TOKEN}`
       },
       body: JSON.stringify(requestBody),
     });
@@ -26,13 +30,14 @@ export async function sendingWhatsapp(number, pdfUrl) {
     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
     const result = await response.json();
-    console.log(`✅ Message sent successfully to ${number}:`, result);
+    console.log(`✅ Document message sent successfully to ${number}:`, result);
     return { status: "success", result };
   } catch (error) {
-    console.error('❌ Error sending message:', error);
+    console.error('❌ Error sending document message:', error);
     return { status: "error", error };
   }
 }
+
 
 
 export default async function handler(req, res) {

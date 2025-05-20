@@ -16,6 +16,7 @@ import {
   FaTrash
 } from "react-icons/fa";
 
+//http://localhost:8080/api/testcal?code=4/0AUJR-x4maQaLql64DVDr2_F06jIsuTmbxo0noOL_IJ8UOwHybzjJn_OZWIIHRi3nj_gxSQ&scope=https://www.googleapis.com/auth/calendar
 const tabs = [
   { id: "agent", label: "Agent", icon: <FaFileAlt /> },
   { id: "knowledge", label: "Knowledge Base", icon: <FaBrain /> },
@@ -138,17 +139,17 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to upload PDF");
+        if (!res.ok) throw new Error(data.message || "Failed to upload File");
 
-        setAlert({ type: "success", message: "✅ PDF uploaded successfully!", visible: true });
+        setAlert({ type: "success", message: "✅ File uploaded successfully!", visible: true });
 
         setPdfFile(null);
       } else {
-        console.log("No PDF selected or agentId missing...");
+        console.log("No File selected or agentId missing...");
       }
     } catch (err) {
-      console.error("❌ Error uploading PDF:", err);
-      setAlert({ type: "error", message: "❌ Error uploading PDF: " + err.message, visible: true });
+      console.error("❌ Error uploading File:", err);
+      setAlert({ type: "error", message: "❌ Error uploading File: " + err.message, visible: true });
     }
   };
 
@@ -168,8 +169,8 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
         setPdfStatusMessage("❌ No file uploaded for this agent. Please upload.");
       }
     } catch (err) {
-      console.error("❌ Failed to fetch existing PDF:", err);
-      setPdfStatusMessage("❌ Failed to check PDF upload.");
+      console.error("❌ Failed to fetch existing File:", err);
+      setPdfStatusMessage("❌ Failed to check File upload.");
     }
   };
 
@@ -354,7 +355,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
         const data = await res.json();
         if (res.ok && data.url) {
           setExistingPdfUrl(data.url);
-          setPdfStatusMessage("✅ PDF uploaded successfully and available at:");
+          setPdfStatusMessage("✅ File uploaded successfully and available at:");
         }
       } catch (err) {
         console.error("❌ Failed to refresh PDF status:", err);
@@ -382,7 +383,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
     setAlert({
       visible: true,
       type: "confirm",
-      message: "Are you sure you want to delete the uploaded PDF?",
+      message: "Are you sure you want to delete the uploaded File?",
       isConfirm: true,
       onConfirm: async () => {
         setAlert(prev => ({ ...prev, visible: false }));
@@ -400,7 +401,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           setPdfStatusMessage("❌ No file uploaded for this agent. Please upload.");
           setAlert({
             type: "success",
-            message: "✅ PDF deleted successfully.",
+            message: "✅ File deleted successfully.",
             visible: true,
           });
         } catch (err) {
@@ -420,19 +421,124 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
 
   const handleSavePhoneTool = async (isDelete = false, toolKey = null) => {
-    if (!agentId || (!isDelete && !phoneNumber)) {
+    if (!agentId) {
       setAlert({
         type: "error",
-        message: "❌ Agent ID and " + (isDelete ? "tool key" : "phone number") + " are required.",
+        message: "❌ Agent ID is missing.",
         visible: true
       });
       return;
     }
 
     const fullNumber = `${countryCode}${phoneNumber}`;
-    const newToolKey = `transfer_call_${Date.now()}`; // Unique key
-    let departmentDescription = "";
+    const departmentDescription =
+      selectedDepartment === "custom" && customDescription.trim()
+        ? customDescription
+        : `Use this tool to transfer the call. Detect if the user wants to speak to the ${selectedDepartment} department. If they say anything like "Can I talk to a human from ${selectedDepartment}?", "I need help from ${selectedDepartment}", "Connect me to ${selectedDepartment}", or similar, trigger the call transfer.`;
 
+    if (isVapiAssistant) {
+      if (!phoneNumber) {
+        setAlert({
+          type: "error",
+          message: "❌ Phone number is required.",
+          visible: true,
+        });
+        return;
+      }
+
+      if (selectedDepartment === "custom" && !customDescription.trim()) {
+        setAlert({
+          type: "error",
+          message: "❌ Custom description cannot be empty.",
+          visible: true,
+        });
+        return;
+      }
+
+      const departmentDescription =
+        selectedDepartment === "custom"
+          ? customDescription
+          : `Use this tool to transfer the call. Detect if the user wants to speak to the ${selectedDepartment} department. If they say anything like "Can I talk to a human from ${selectedDepartment}?", "I need help from ${selectedDepartment}", "Connect me to ${selectedDepartment}", or similar, trigger the call transfer.`;
+
+      const fullNumber = `${countryCode}${phoneNumber}`;
+      const vapiToken = process.env.NEXT_PUBLIC_API_TOKEN_VAPI;
+
+      try {
+        // Step 1: Create the tool
+        const toolRes = await fetch("https://api.vapi.ai/tool", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${vapiToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "transferCall",
+            destinations: [
+              {
+                type: "number",
+                number: fullNumber,
+                description: departmentDescription,
+                message: "Sure, I'll transfer the call for you. Please wait a moment..."
+              },
+            ],
+          }),
+        });
+
+        const toolData = await toolRes.json();
+        if (!toolRes.ok) throw new Error(toolData.message || "Failed to create transferCall tool.");
+
+        const newToolId = toolData.id;
+
+        // Step 2: Fetch current assistant config
+        const assistantRes = await fetch(`https://api.vapi.ai/assistant/${agentId}`, {
+          headers: {
+            Authorization: `Bearer ${vapiToken}`,
+          },
+        });
+        const assistant = await assistantRes.json();
+        if (!assistantRes.ok) throw new Error("Failed to fetch assistant config");
+
+        // Step 3: Append toolId to existing toolIds (if any)
+        const existingToolIds = assistant?.model?.toolIds || [];
+        const updatedToolIds = [...new Set([...existingToolIds, newToolId])];
+
+        // Step 4: PATCH the assistant with updated toolIds
+        const updateRes = await fetch(`https://api.vapi.ai/assistant/${agentId}`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${vapiToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: {
+              ...assistant.model,
+              toolIds: updatedToolIds,
+            },
+          }),
+        });
+
+        const updateData = await updateRes.json();
+        if (!updateRes.ok) throw new Error(updateData.message || "Failed to update assistant with new toolId");
+
+        setAlert({
+          type: "success",
+          message: "✅ Number added successfully!",
+          visible: true,
+        });
+      } catch (err) {
+        console.error("❌ Error setting up Vapi transfer tool:", err);
+        setAlert({
+          type: "error",
+          message: "❌ Failed to create tool or update assistant: " + err.message,
+          visible: true,
+        });
+      }
+
+      return; // Skip Bolna flow
+    }
+
+
+    // ✅ BOLNA DELETE LOGIC
     if (isDelete && toolKey) {
       const updatedTasks = JSON.parse(JSON.stringify(agent.tasks || []));
       const convoTask = updatedTasks[0];
@@ -483,7 +589,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Failed to update agent.");
-        setAlert({ type: "success", message: "✅ Tool deleted successfully!", visible: true });
+        setAlert({ type: "success", message: "✅ Number deleted successfully!", visible: true });
       } catch (err) {
         setAlert({ type: "error", message: "❌ Error deleting phone tool: " + err.message, visible: true });
       }
@@ -491,18 +597,26 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       return;
     }
 
-
-    // Create new tool logic (if not deleting)
-    if (selectedDepartment === "custom" && customDescription.trim()) {
-      departmentDescription = customDescription; // Use custom description if entered
-    } else if (selectedDepartment !== "custom") {
-      // Default description based on selected department
-      departmentDescription = `Use this tool to transfer the call. Detect if the user wants to speak to the ${selectedDepartment} department. If they say anything like "Can I talk to a human from ${selectedDepartment}?", "I need help from ${selectedDepartment}", "Connect me to ${selectedDepartment}", or similar, trigger the call transfer.`;
-    } else {
-      setAlert({ type: "error", message: "❌ Custom description cannot be empty.", visible: true });
+    // ✅ BOLNA CREATE TOOL LOGIC
+    if (!phoneNumber) {
+      setAlert({
+        type: "error",
+        message: "❌ Phone number is required.",
+        visible: true,
+      });
       return;
     }
 
+    if (selectedDepartment === "custom" && !customDescription.trim()) {
+      setAlert({
+        type: "error",
+        message: "❌ Custom description cannot be empty.",
+        visible: true,
+      });
+      return;
+    }
+
+    const newToolKey = `transfer_call_${Date.now()}`;
     const newTool = {
       name: newToolKey,
       key: "transfer_call",
@@ -531,7 +645,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       id: Math.floor(Math.random() * 1000)
     };
 
-    // Deep clone tasks
     const updatedTasks = JSON.parse(JSON.stringify(agent.tasks || []));
     const convoTask = updatedTasks[0];
 
@@ -542,7 +655,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
         tools_params: {}
       };
 
-      // 🧠 Merge new tool
       convoTask.tools_config.api_tools.tools.push(newTool);
       convoTask.tools_config.api_tools.tools_params[newToolKey] = newToolParam;
     }
@@ -583,6 +695,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
 
 
+
   const handleDeleteMeetLink = () => {
     setAlert({
       type: "confirm",
@@ -618,7 +731,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       });
       return;
     }
-  
+
     try {
       const res = await fetch(`${BASE_URL}/api/clients/uploadmeetlink`, {
         method: "POST",
@@ -627,17 +740,17 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
         },
         body: JSON.stringify({ assistantId: agentId, meetLink }),
       });
-  
+
       const data = await res.json();
-  
+
       if (!res.ok) throw new Error(data.message || "Failed to upload meet link");
-  
+
       setAlert({
         type: "success",
         message: "✅ Meet link uploaded successfully!",
         visible: true,
       });
-  
+
       setMeetLink(""); // Clear the input field
       setExistingMeetLink(meetLink); // ✅ Immediately reflect saved link
     } catch (err) {
@@ -649,7 +762,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       });
     }
   };
-  
+
 
   useEffect(() => {
     const fetchMeetLink = async () => {
@@ -699,8 +812,40 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
             setVoice(data.voice?.voiceId || "");
 
+            // ✅ Fetch associated tool numbers from toolIds
+            const fetchToolNumbers = async (toolIds = []) => {
+              const tools = [];
+
+              for (const id of toolIds) {
+                try {
+                  const toolRes = await fetch(`https://api.vapi.ai/tool/${id}`, {
+                    headers: {
+                      Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
+                    },
+                  });
+                  if (!toolRes.ok) continue;
+                  const tool = await toolRes.json();
+                  if (tool?.destinations?.length > 0) {
+                    tools.push({
+                      id: tool.id,
+                      number: tool.destinations[0].number,
+                      description: tool.destinations[0].description,
+                    });
+                  }
+                } catch (err) {
+                  console.error("❌ Failed to fetch tool details:", err);
+                }
+              }
+
+              setAdditionalDetails(prev => ({
+                ...prev,
+                vapiTransferTools: tools,
+              }));
+            };
+
             // Store other Vapi fields as needed
-            setAdditionalDetails({
+            setAdditionalDetails(prev => ({
+              ...prev,
               voicemailMessage: data.voicemailMessage,
               endCallMessage: data.endCallMessage,
               modelProvider: data.model?.provider,
@@ -714,7 +859,11 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
               backgroundDenoisingEnabled: data.backgroundDenoisingEnabled,
               startSpeakingPlan: data.startSpeakingPlan,
               isServerUrlSecretSet: data.isServerUrlSecretSet,
-            });
+            }));
+
+            if (data.model?.toolIds?.length > 0) {
+              await fetchToolNumbers(data.model.toolIds);
+            }
           }
 
         } else {
@@ -744,6 +893,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
     fetchAgentDetails();
   }, [agentId, isVapiAssistant]);
+
 
   const handleSaveDetails = async () => {
     const endpoint = isVapiAssistant
@@ -810,7 +960,68 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   };
 
 
-
+  const handleDeleteVapiTool = async (toolId) => {
+    if (!toolId || !agentId) return;
+  
+    const vapiToken = process.env.NEXT_PUBLIC_API_TOKEN_VAPI;
+  
+    try {
+      // Step 1: Fetch current assistant config
+      const assistantRes = await fetch(`https://api.vapi.ai/assistant/${agentId}`, {
+        headers: {
+          Authorization: `Bearer ${vapiToken}`,
+        },
+      });
+      const assistant = await assistantRes.json();
+      if (!assistantRes.ok) throw new Error("Failed to fetch assistant config");
+  
+      // Step 2: Remove toolId from toolIds
+      const updatedToolIds = (assistant?.model?.toolIds || []).filter(id => id !== toolId);
+  
+      // Step 3: Update assistant without the removed toolId
+      const updateRes = await fetch(`https://api.vapi.ai/assistant/${agentId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${vapiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: {
+            ...assistant.model,
+            toolIds: updatedToolIds,
+          },
+        }),
+      });
+  
+      if (!updateRes.ok) throw new Error("Failed to update assistant without toolId");
+  
+      // Step 4: Delete the tool itself
+      const deleteRes = await fetch(`https://api.vapi.ai/tool/${toolId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${vapiToken}`,
+        },
+      });
+  
+      if (!deleteRes.ok) throw new Error("Failed to delete the tool");
+  
+      // Step 5: Refresh UI
+      setAdditionalDetails(prev => ({
+        ...prev,
+        vapiTransferTools: prev.vapiTransferTools.filter(tool => tool.id !== toolId),
+      }));
+  
+      setAlert({ type: "success", message: "✅ Tool deleted successfully!", visible: true });
+    } catch (err) {
+      console.error("❌ Failed to delete tool:", err);
+      setAlert({
+        type: "error",
+        message: "❌ Failed to delete tool: " + err.message,
+        visible: true,
+      });
+    }
+  };
+  
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -897,7 +1108,8 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
           <button
             onClick={() => {
-              const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=254745577605-gcilpc49ub26ug3a1jucf8tjee2207bq.apps.googleusercontent.com&redirect_uri=http://localhost:8080/api/testcal&response_type=code&scope=https://www.googleapis.com/auth/calendar&access_type=offline&prompt=consent`;
+              const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI}&response_type=code&scope=https://www.googleapis.com/auth/calendar&access_type=offline&prompt=consent`;
+
               window.open(authUrl, "_blank");
             }}
             className="bg-green-600 text-white px-4 py-2 rounded text-sm"
@@ -1174,6 +1386,25 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
             Save Number
           </button>
 
+          {isVapiAssistant && additionalDetails?.vapiTransferTools?.length > 0 && (
+            <>
+              {additionalDetails.vapiTransferTools.map((tool) => (
+                <p key={tool.id} className="flex items-center text-sm text-gray-700 mt-1">
+                  <strong className="mr-1">Transfer call for:</strong>
+                  <span className="text-gray-900 font-medium mr-2">{tool.number}</span>
+                  <button
+                    onClick={() => handleDeleteVapiTool(tool.id)}
+                    className="text-red-500 hover:text-red-700"
+                    title="Delete"
+                  >
+                    <FaTrash />
+                  </button>
+                </p>
+              ))}
+            </>
+          )}
+
+
 
           {Object.entries(agent?.tasks?.[0]?.tools_config?.api_tools?.tools_params || {}).map(
             ([key, config]) => {
@@ -1200,7 +1431,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           {/* PDF Upload Section */}
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Upload PDF (for tools)
+              Upload File (for tools)
             </label>
 
             {existingPdfUrl ? (
@@ -1228,7 +1459,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
               <>
                 <input
                   type="file"
-                  accept="application/pdf"
+                  accept=".pdf,.doc,.docx,image/*"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -1242,7 +1473,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
                   onClick={handleSavePDF}
                   className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-4"
                 >
-                  Save PDF
+                  Save File
                 </button>
               </>
             )}

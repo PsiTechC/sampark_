@@ -1,49 +1,7 @@
-
-
-
-// // C:\Users\***REMOVED*** kale\botGIT\pages\api\login.js
-// import { connectToDatabase } from '../../lib/db';
-// import bcrypt from 'bcryptjs';
-// import jwt from 'jsonwebtoken';
-
-// export default async function handler(req, res) {
-//   if (req.method === 'POST') {
-//     const { email, password } = req.body;
-
-//     if (!email || !password) {
-//       return res.status(400).json({ message: 'Email and password are required' });
-//     }
-
-//     try {
-//       const { db } = await connectToDatabase();
-//       const user = await db.collection('users').findOne({ email });
-
-//       if (!user) {
-//         console.error(`[LOGIN] User not found: ${email}`);
-//         return res.status(401).json({ message: 'Invalid email or password' });
-//       }
-
-//       const isPasswordValid = await bcrypt.compare(password.trim(), user.password);
-//       if (!isPasswordValid) {
-//         console.error(`[LOGIN] Invalid password for user: ${email}`);
-//         return res.status(401).json({ message: 'Invalid email or password' });
-//       }
-
-//       const token = jwt.sign({ email: user.email, clientId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-//       return res.status(200).json({ token, redirectUrl: `/client-dashboard/${user._id}`, clientId: user._id });
-//     } catch (error) {
-//       console.error('Login error:', error);
-//       return res.status(500).json({ message: 'Internal server error' });
-//     }
-//   } else {
-//     return res.status(405).json({ message: 'Method not allowed' });
-//   }
-// }
-
-// C:\botGIT\botGIT-main\pages\api\login.js
 import { connectToDatabase } from '../../lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
@@ -84,11 +42,26 @@ export default async function handler(req, res) {
       }
 
       // Generate a JWT token
-      const token = jwt.sign({ email: user.email, clientId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      const token = jwt.sign({ email: user.email, clientId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
       console.log('Token generated for user:', email);
 
       // Respond with the token and redirect URL
-      return res.status(200).json({ token, redirectUrl: `/client-dashboard/${user._id}`, clientId: user._id });
+
+
+      // Set the cookie in the response
+      res.setHeader(
+        'Set-Cookie',
+        cookie.serialize('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 60 * 60, // 1 hour
+          sameSite: 'lax',
+          path: '/',
+        })
+      );
+      
+      return res.status(200).json({ redirectUrl: `/client-dashboard/${user._id}`, clientId: user._id });
+      
     } catch (error) {
       console.error('Login error:', error);
       return res.status(500).json({ message: 'Internal server error' });

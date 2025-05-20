@@ -13,8 +13,9 @@ const LoginComponent = () => {
 
     try {
       const response = await axios.post('/api/login', { email, password });
-      const { token, redirectUrl } = response.data;
-      localStorage.setItem('token', token);
+      const { redirectUrl } = response.data;
+      router.push(redirectUrl);
+      
       router.push(redirectUrl); // Redirect to dashboard
     } catch (error) {
       console.error('Error during login:', error);
