@@ -487,38 +487,51 @@ export default function Marketing() {
 
 
   // ­­­­­­­­­­­­­­­­­­­­­­­ inside your <Marketing /> component — e.g. just below openSchedule()
-  async function openReport(batchId) {
-    try {
-      // 1. Fetch the JSON summary that the API route already returns
-      const res = await fetch(`/api/batches/${batchId}/report`);
-      if (!res.ok) throw new Error(`Server responded ${res.status}`);
-      const batch = await res.json();
+async function openReport(batchId) {
+  try {
+    const res = await fetch(`/api/batches/${batchId}/report`);
+    if (!res.ok) throw new Error(`Server responded ${res.status}`);
+    const batch = await res.json();
 
-      // 2. Turn the summary array into a CSV string
-      const headers = ['phone', 'status', 'duration', 'transcript'];
-      const rows = batch.summary.map(r => [
-        r.phone,
-        r.status,
-        r.duration ?? '',
-        (r.transcript ?? '').replace(/"/g, '""')    // escape quotes
-      ]);
-      const csv =
-        [headers, ...rows]
-          .map(row => row.map(col => `"${col}"`).join(','))
-          .join('\n');
+    const headers = [
+      'row','firstName','lastName','callId','customerNumber','timezone',
+      'status','endedReason','retryCount','duration','transcript',
+      'monitorListenUrl','monitorControlUrl','callSid','recordingUrl'
+    ];
 
-      // 3. Trigger a download in the browser
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `batch_${batchId}_report.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(err.message || 'Failed to download report');
-    }
+    const rows = batch.summary.map(r => [
+      r.row,
+      r.firstName,
+      r.lastName,
+      r.callId,
+      r.customerNumber,
+      r.timezone,
+      r.status,
+      r.endedReason,
+      r.retryCount,
+      r.duration,
+ (r.transcript || '').replace(/"/g, '""'),
+      r.monitorListenUrl,
+      r.monitorControlUrl,
+      r.callSid,
+      r.recordingUrl
+    ]);
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(col => `"${col}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `batch_${batchId}_report.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message || 'Failed to download report');
   }
+}
 
 
   async function handleScheduleBatch(batchId) {
