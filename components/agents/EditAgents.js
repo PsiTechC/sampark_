@@ -16,7 +16,6 @@ import {
   FaTrash
 } from "react-icons/fa";
 
-//http://localhost:8080/api/testcal?code=4/0AUJR-x4maQaLql64DVDr2_F06jIsuTmbxo0noOL_IJ8UOwHybzjJn_OZWIIHRi3nj_gxSQ&scope=https://www.googleapis.com/auth/calendar
 const tabs = [
   { id: "agent", label: "Agent", icon: <FaFileAlt /> },
   { id: "knowledge", label: "Knowledge Base", icon: <FaBrain /> },
@@ -34,10 +33,12 @@ const tabs = [
 
 const bolnaVoices = ["Monika Sogam", "Vikram", "Roshni", "Anjali", "Sara", "Sanjay", "Vijay"];
 const vapiVoices = [
-  "burt-11labs", "marissa-11labs", "andrea-11labs", "sarah-11labs", "phillip-11labs",
-  "steve-11labs", "joseph-11labs", "myra-11labs", "paula-11labs", "ryan-11labs",
-  "drew-11labs", "paul-11labs", "mrb-11labs", "matilda-11labs", "mark-11labs"
+  "burt-11labs", "marissa-11labs", "andrea-11labs", "sarah-11labs",
+  "phillip-11labs", "steve-11labs", "joseph-11labs", "myra-11labs",
+  "paula-11labs", "ryan-11labs", "drew-11labs", "paul-11labs",
+  "mrb-11labs", "matilda-11labs", "mark-11labs"
 ];
+
 
 
 // Named export for EditAgent component
@@ -153,9 +154,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
     }
   };
 
-
-
-  // Fetch uploaded PDF for this agent
   const fetchExistingPdf = async () => {
     try {
       const res = await fetch(`${BASE_URL}//api/clients/ispdfupload?agentId=${agentId}`);
@@ -278,7 +276,15 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       : `https://api.bolna.dev/v2/agent/${agentId}`;
 
     const payload = isVapiAssistant
-      ? { voice }
+      ? {
+        voice: {
+          provider: "11labs",
+          voiceId: voice,
+          model: "eleven_turbo_v2_5",
+          stability: 0.5,
+          similarityBoost: 0.75,
+        },
+      }
       : {
         agent_config: {},
         tools_config: {
@@ -287,6 +293,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           },
         },
       };
+
 
     try {
       const res = await fetch(endpoint, {
@@ -416,8 +423,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       onCancel: () => setAlert(prev => ({ ...prev, visible: false })),
     });
   };
-
-
 
 
   const handleSavePhoneTool = async (isDelete = false, toolKey = null) => {
@@ -694,8 +699,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   };
 
 
-
-
   const handleDeleteMeetLink = () => {
     setAlert({
       type: "confirm",
@@ -962,9 +965,9 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
   const handleDeleteVapiTool = async (toolId) => {
     if (!toolId || !agentId) return;
-  
+
     const vapiToken = process.env.NEXT_PUBLIC_API_TOKEN_VAPI;
-  
+
     try {
       // Step 1: Fetch current assistant config
       const assistantRes = await fetch(`https://api.vapi.ai/assistant/${agentId}`, {
@@ -974,10 +977,10 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       });
       const assistant = await assistantRes.json();
       if (!assistantRes.ok) throw new Error("Failed to fetch assistant config");
-  
+
       // Step 2: Remove toolId from toolIds
       const updatedToolIds = (assistant?.model?.toolIds || []).filter(id => id !== toolId);
-  
+
       // Step 3: Update assistant without the removed toolId
       const updateRes = await fetch(`https://api.vapi.ai/assistant/${agentId}`, {
         method: "PATCH",
@@ -992,9 +995,9 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           },
         }),
       });
-  
+
       if (!updateRes.ok) throw new Error("Failed to update assistant without toolId");
-  
+
       // Step 4: Delete the tool itself
       const deleteRes = await fetch(`https://api.vapi.ai/tool/${toolId}`, {
         method: "DELETE",
@@ -1002,15 +1005,15 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           Authorization: `Bearer ${vapiToken}`,
         },
       });
-  
+
       if (!deleteRes.ok) throw new Error("Failed to delete the tool");
-  
+
       // Step 5: Refresh UI
       setAdditionalDetails(prev => ({
         ...prev,
         vapiTransferTools: prev.vapiTransferTools.filter(tool => tool.id !== toolId),
       }));
-  
+
       setAlert({ type: "success", message: "✅ Tool deleted successfully!", visible: true });
     } catch (err) {
       console.error("❌ Failed to delete tool:", err);
@@ -1021,7 +1024,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       });
     }
   };
-  
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

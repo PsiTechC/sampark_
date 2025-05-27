@@ -14,21 +14,55 @@ function ClientDashboard() {
   const [costBreakdown, setCostBreakdown] = useState(null);
 
   // Fetch agents
+
   useEffect(() => {
-    const fetchAgents = async () => {
+    const fetchVapiAssistantsAndSentiment = async () => {
       try {
-        const res = await fetch("https://api.bolna.dev/v2/agent/all", {
-          headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}` },
-        });
-        const data = await res.json();
-        setAgents(data);
+        const mapRes = await fetch("/api/map/getUserAgents");
+        const { assistants } = await mapRes.json();
+  
+        const assistantDetails = await Promise.all(
+          assistants.map(async (id) => {
+            const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
+              headers: {
+                Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
+              },
+            });
+            if (!res.ok) throw new Error(`Failed to fetch assistant ${id}`);
+            return await res.json();
+          })
+        );
+  
+        const cleanedAgents = assistantDetails.map((a) => ({
+          id: a.id,
+          agent_name: a.name,
+        }));
+  
+        setAgents(cleanedAgents);
+        setSelectedAgentId(cleanedAgents[0]?.id || "");
+  
+        // Fetch sentiment one by one
+        const sentimentSummaries = await Promise.all(
+          assistants.map(async (id) => {
+            const res = await fetch(`${BASE_URL}/api/clients/sentimentAnalysis?assistantId=${id}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            const summary = data.sentiment_summary?.[0]; // assuming it's an array
+            return summary ? { ...summary, agent_id: id } : null;
+          })
+        );
+  
+        setSentimentData(sentimentSummaries.filter(Boolean));
       } catch (err) {
-        console.error("Failed to fetch agents", err);
-        setError("Failed to load agents");
+        console.error("Failed to load Vapi agents or sentiment", err);
+        setError("Error loading Vapi agents or sentiment");
       }
     };
-    fetchAgents();
+  
+    fetchVapiAssistantsAndSentiment();
   }, []);
+  
+
 
   // Fetch analytics
   useEffect(() => {
@@ -45,20 +79,8 @@ function ClientDashboard() {
     fetchAnalytics();
   }, []);
   const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-  // Fetch sentiment summary (agent-wide)
-  useEffect(() => {
-    const fetchSentiment = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/api/clients/sentimentAnalysis`);
-        const data = await res.json();
-        setSentimentData(data.sentiment_summary || []);
-      } catch (err) {
-        console.error("Failed to fetch sentiment data", err);
-        setError("Error fetching sentiment data");
-      }
-    };
-    fetchSentiment();
-  }, []);
+
+
 
   // Fetch campaign sentiment summary
   useEffect(() => {
@@ -213,7 +235,8 @@ function ClientDashboard() {
                 </thead>
                 <tbody>
                   {enrichedAgents.map((agent) => {
-                    const totalCalls = agent.totalCalls || 0;
+                    const totalCalls = agent.total_calls || agent.totalCalls || 0;
+
                     const answered = agent.successCalls || 0;
                     const unanswered = agent.failedCalls || 0;
 

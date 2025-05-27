@@ -18,7 +18,6 @@ export default function CreateAgent() {
     aboutBusiness: "",
     transcriberProvider: "deepgram",
     transcriberModel: "nova-2",
-    language: "en",
     phoneNumber: ""
   });
 
@@ -34,16 +33,20 @@ export default function CreateAgent() {
   const voiceOptions = {
     india: ["Monika Sogam", "Vikram", "Roshni", "Anjali", "Sara", "Sanjay", "Vijay"],
     us: [
-      "burt-11labs", "marissa-11labs", "andrea-11labs", "sarah-11labs", "phillip-11labs",
-      "steve-11labs", "joseph-11labs", "myra-11labs", "paula-11labs", "ryan-11labs",
-      "drew-11labs", "paul-11labs", "mrb-11labs", "matilda-11labs", "mark-11labs"
+      { label: "Burt", voiceId: "burt", provider: "11labs" },
+      { label: "Sarah", voiceId: "sarah", provider: "11labs" },
+      { label: "Mark", voiceId: "mark", provider: "11labs" },
+      { label: "Ryan", voiceId: "ryan", provider: "11labs" }
+      // Add more as needed
     ]
+
+
   };
 
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
-      voice: voiceOptions[market][0] || "", 
+      voice: voiceOptions[market][0] || "",
     }));
   }, [market]);
 
@@ -147,12 +150,12 @@ export default function CreateAgent() {
                       }
                     }
                   }
-                  
-                  
+
+
                 }
               }
             ]
-            
+
           },
           agent_prompts: {
             task_1: {
@@ -173,8 +176,20 @@ export default function CreateAgent() {
         const requestBody = {
           name: formData.agentName,
           firstMessage: formData.welcomeMessage,
-          voice: formData.voice
+          voice: {
+            provider: formData.voice.provider,
+            voiceId: formData.voice.voiceId,
+            model: "eleven_turbo_v2_5",
+            stability: 0.5,
+            similarityBoost: 0.75
+          },
+          transcriber: {
+            model: "scribe_v1",
+            language: "en",
+            provider: "11labs"
+          }
         };
+
 
         res = await fetch("https://api.vapi.ai/assistant", {
           method: "POST",
@@ -203,7 +218,7 @@ export default function CreateAgent() {
           });
         }
       }
-      
+
 
 
     } catch (error) {
@@ -257,11 +272,20 @@ export default function CreateAgent() {
 
         <textarea name="systemPrompt" placeholder="System Prompt" value={formData.systemPrompt} onChange={handleChange} className="w-full p-2 border rounded"></textarea>
 
-        <select name="voice" value={formData.voice} onChange={handleChange} className="w-full p-2 border rounded">
-          {voiceOptions[market].map((v) => (
-            <option key={v} value={v}>{v}</option>
+        <select
+          name="voice"
+          value={formData.voice.voiceId}
+          onChange={(e) => {
+            const selected = voiceOptions[market].find(v => v.voiceId === e.target.value);
+            setFormData(prev => ({ ...prev, voice: selected }));
+          }}
+          className="w-full p-2 border rounded"
+        >
+          {voiceOptions[market].map(v => (
+            <option key={v.voiceId} value={v.voiceId}>{v.label}</option>
           ))}
         </select>
+
 
         {/* <select name="callTerminate" value={formData.callTerminate} onChange={handleChange} className="w-full p-2 border rounded">
           <option value="180">180 Seconds</option>

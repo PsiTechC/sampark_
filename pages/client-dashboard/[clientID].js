@@ -59,19 +59,12 @@ export default function Dashboard() {
   const [alert, setAlert] = useState({ visible: false, type: "", message: "", isConfirm: false, onConfirm: null });
   const [sortAsc, setSortAsc] = useState(true);
   const [sortOption, setSortOption] = useState("name");
-  const [showSortDirectionMenu, setShowSortDirectionMenu] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [renameInput, setRenameInput] = useState("");
   const [renameTarget, setRenameTarget] = useState({ id: null, isVapi: false });
 
 
 
-  // const sortedAgents = [...agents].sort((a, b) =>
-  //   sortAsc ? a.agent_name.localeCompare(b.agent_name) : b.agent_name.localeCompare(a.agent_name)
-  // );
-  // const sortedVapiAssistants = [...vapiAssistants].sort((a, b) =>
-  //   sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-  // );
 
   const [sortDropdown, setSortDropdown] = useState(null);
 
@@ -94,11 +87,6 @@ export default function Dashboard() {
     return 0;
   });
 
-  const toggleSortDirection = (option) => {
-    setSortAsc(prev => !prev);
-    setSortOption(option);
-    setSortDropdown(null);
-  };
 
   // Fetch Agents
   const fetchAgents = useCallback(async () => {
@@ -124,6 +112,7 @@ export default function Dashboard() {
   }, []);
 
 
+
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
@@ -131,16 +120,48 @@ export default function Dashboard() {
 
   const fetchVapiAssistants = async () => {
     try {
-      const res = await fetch('https://api.vapi.ai/assistant', {
-        headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}` },
-      });
-      const data = await res.json();
-      setVapiAssistants(data);
+      // Step 1: Get user-mapped assistant IDs from internal API
+      const resMapping = await fetch("/api/map/getUserAgents");
+      const mappingData = await resMapping.json();
 
+      if (!resMapping.ok || !Array.isArray(mappingData.assistants)) {
+        console.error("❌ Failed to retrieve assistant IDs");
+        setVapiAssistants([]);
+        return;
+      }
+
+      const assistantIds = mappingData.assistants;
+
+      // Step 2: Fetch assistant details one by one using the Vapi public endpoint
+      const fetchedAssistants = await Promise.all(
+        assistantIds.map(async (id) => {
+          try {
+            const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
+              headers: {
+                Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
+              },
+            });
+
+            if (!res.ok) throw new Error(`Failed to fetch assistant ${id}`);
+
+            const data = await res.json();
+            return data;
+          } catch (err) {
+            console.error(`Failed to fetch assistant ${id}:`, err);
+            return null;
+          }
+        })
+      );
+
+      // Filter out failed fetches
+      const validAssistants = fetchedAssistants.filter((a) => a !== null);
+      setVapiAssistants(validAssistants);
     } catch (err) {
-      console.error('Failed to fetch Vapi assistants', err);
+      console.error("Failed to fetch mapped assistants:", err);
+      setVapiAssistants([]);
     }
   };
+
 
   useEffect(() => {
     fetchVapiAssistants();
@@ -157,6 +178,11 @@ export default function Dashboard() {
         },
       });
       if (res.ok) {
+        await fetch("/api/map/userDeleteAgent", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId }),
+        });
         setAgents((prev) => prev.filter((a) => a.id !== agentId));
         setSelectedAgentId(null);
         setAlert({
@@ -190,6 +216,11 @@ export default function Dashboard() {
         },
       });
       if (res.ok) {
+        await fetch("/api/map/userDeleteAgent", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId: assistantId }),
+        });
         setVapiAssistants((prev) => prev.filter((a) => a.id !== assistantId));
         setSelectedVapiAssistant(null);
         setAlert({
@@ -294,8 +325,8 @@ export default function Dashboard() {
           </div>
           <hr className="border-t border-gray-300 my-2" />
 
-          <h3 className="text-lg font-semibold text-gray-800">Bolna Agents</h3>
-          {loading ? (
+          {/* <h3 className="text-lg font-semibold text-gray-800">Bolna Agents</h3> */}
+          {/* {loading ? (
             <p className="text-gray-500">Loading agents...</p>
           ) : (
             <div className="mt-4 space-y-2">
@@ -320,7 +351,7 @@ export default function Dashboard() {
                             id: agent.id,
                             isVapi: false,
                           });
-                          
+
                           setShowRenameModal(true);
                         }}
                         className="text-gray-400 hover:text-green-600 text-sm mr-3"
@@ -363,11 +394,21 @@ export default function Dashboard() {
                                   },
                                   body: JSON.stringify(requestBody)
                                 });
+
                                 const data = await res.json();
                                 if (!res.ok) {
                                   const errorMessage = data?.detail || data?.message || "Failed to copy agent.";
                                   setAlert({ type: "error", message: `❌ ${errorMessage}`, visible: true });
                                 } else {
+                                  // Add new assistant ID to useragentmapping
+                                  await fetch("/api/map/addAssistantId", {
+                                    method: "POST",
+                                    headers: {
+                                      "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({ agentId: data.id })
+                                  });
+
                                   setAlert({ type: "success", message: `✅ ${newAgentName} created successfully!`, visible: true });
                                   fetchAgents();
                                 }
@@ -410,7 +451,7 @@ export default function Dashboard() {
                 <p className="text-gray-500">No agents found.</p>
               )}
             </div>
-          )}
+          )} */}
 
           <h3 className="text-lg font-semibold text-gray-800 mt-6">Vapi Assistants</h3>
           <div className="mt-4 space-y-2">
@@ -434,8 +475,8 @@ export default function Dashboard() {
                           id: assistant.id,
                           isVapi: true,
                         });
-                        
-                        
+
+
                         setShowRenameModal(true);
                       }}
                       className="text-gray-400 hover:text-green-600 text-sm mr-3"
@@ -454,46 +495,54 @@ export default function Dashboard() {
                           isConfirm: true,
                           onConfirm: async () => {
                             setAlert({ ...alert, visible: false });
-                            const newAssistantName = `${assistant.name}`;
-                            const requestBody = {
-                              name: newAssistantName,
-                              firstMessage: assistant.firstMessage,
-                              voice: typeof assistant.voice === "string" ? assistant.voice : assistant.voice?.voiceId || "",
-                              model: assistant.model,
-                              transcriber: assistant.transcriber,
-                              endCallMessage: assistant.endCallMessage,
-                              voicemailMessage: assistant.voicemailMessage,
-                              endCallPhrases: assistant.endCallPhrases,
-                              clientMessages: assistant.clientMessages,
-                              serverMessages: assistant.serverMessages,
-                              startSpeakingPlan: assistant.startSpeakingPlan,
-                              hipaaEnabled: assistant.hipaaEnabled,
-                              backchannelingEnabled: assistant.backchannelingEnabled,
-                              backgroundDenoisingEnabled: assistant.backgroundDenoisingEnabled,
-                            };
-
+                          
+                            // 1. Clone the assistant object, omitting non-POSTable fields
+                            const {
+                              id,
+                              orgId,
+                              createdAt,
+                              updatedAt,
+                              isServerUrlSecretSet,
+                              ...cloneData
+                            } = assistant;
+                          
+                            // 2. Override the name to avoid conflicts
+                            const newAssistantName = `${assistant.name} Copy`;
+                            cloneData.name = newAssistantName;
+                          
                             try {
+                              // 3. Create the duplicated assistant using Vapi API
                               const res = await fetch("https://api.vapi.ai/assistant", {
                                 method: "POST",
                                 headers: {
                                   Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
                                   "Content-Type": "application/json"
                                 },
-                                body: JSON.stringify(requestBody)
+                                body: JSON.stringify(cloneData),
                               });
+                          
                               const data = await res.json();
+                          
                               if (!res.ok) {
                                 const errorMessage = data?.detail || data?.message || "Failed to copy assistant.";
                                 setAlert({ type: "error", message: `❌ ${errorMessage}`, visible: true });
                               } else {
+                                // 4. Map the new assistant ID to the user in your DB
+                                await fetch("/api/map/usernewagents", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ agentId: data.id }),
+                                });
+                          
                                 setAlert({ type: "success", message: `✅ ${newAssistantName} created successfully!`, visible: true });
-                                fetchVapiAssistants();
+                                fetchVapiAssistants(); // refresh UI
                               }
                             } catch (error) {
-                              console.error("Error copying assistant:", error);
+                              console.error("Error duplicating assistant:", error);
                               setAlert({ type: "error", message: "Failed to copy assistant. See console.", visible: true });
                             }
                           }
+                          
                         });
                       }}
                       className="text-gray-400 hover:text-blue-600 text-sm mr-3"

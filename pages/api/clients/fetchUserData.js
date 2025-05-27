@@ -5,7 +5,8 @@ import CorsMiddleware from "../../../lib/cors-middleware";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const today = new Date().toISOString().split("T")[0]; // e.g. "2025-05-20"
+const today = new Date().toISOString(); // e.g. "2025-05-20T14:53:00.000Z"
+
 
 function cleanEmail(email) {
   return email
@@ -86,23 +87,46 @@ export default async function handler(req, res) {
 
           const userPrompt = `
           You are an information extraction AI. From the following call object, extract these fields:
-
+          
           - assistantId: the assistant ID
           - id: the call ID
           - name: the user's full name (just the name of the customer NOT THE AI ASSISTANT NAME)
-          - email: a valid email address. If the user spells it (e.g. "a dot b at g m a i l dot com"), convert it into a proper format like "ab@gmail.com". Do NOT return email with dots between each character (e.g. "a.b.c.d").
+          - email: a valid email address. If the user spells it (e.g., "a dot b at g m a i l dot com"), convert it into a proper format like "ab@gmail.com". Users may also say their email in parts, such as: "My email address is s a n k e t double k, a p, double o, r 0 7 at Gmail dot com." Make sure to correctly interpret "double" as repeating the following letter (e.g., "double k" → "kk"). Do NOT return email addresses with dots between each character (e.g., "a.b.c.d").
           - phone: convert spoken formats like "nine one triple eight" or "nine one three one double eight" into digits, like "9188" or "913188". Remove spaces, and return only digits. Do NOT return masked values like "9131XXX".
-          - appointmentDate: if the user mentions a date and time for a meeting or appointment, return it in full ISO 8601 format, e.g., "2025-07-05T15:00:00+05:30". If the user mentions a timezone like Pacific, Mountain, Central, Indian, or any other common timezone reference, append the correct abbreviation (e.g., PST, MST, CST, IST) to the date/time string. If instead the user mentions a country (e.g., India, USA, Germany) or a city (e.g., New York, Berlin, Mumbai), determine the corresponding timezone and append its correct abbreviation (e.g., IST, EST, CET) to the date/time string.
-               Today's date is: ${today}
-               - If no year is mentioned, assume the upcoming date in the current year (${today.split("-")[0]}).
-               - If a past year is mentioned (e.g., 2023), correct it to the current year.
-               - If the year is in the future (e.g., 2026), preserve it as is.
+          - appointmentDate: if the user mentions a date and time for a meeting or appointment, return it in full ISO 8601 format, e.g., "2025-07-05T15:00:00+05:30".
+               If the user says things like:
+               - "Call me in 30 minutes"
+               - "Book an appointment after 1 hour"
+               - "Connect me tomorrow at 3 PM"
+        
+              Then calculate the exact datetime from the current moment: **${today}** (ISO format). Assume:
+               - "30 minutes from now" → current time + 30 minutes
+               - "after 1 hour" → current time + 1 hour
+               - "tomorrow at 3 PM" → next day at 15:00 local time
+               - If only a vague future intent is mentioned like "later" or "after lunch", return "-"
+
+               - If the user explicitly mentions a **date and time in the past** (compared to today's datetime of **${today}**), do **not** return that past value. Instead, set:
+               "appointmentDate": "user asked for past date"
+               
+          - timezone: the IANA time zone string if the user mentions a timezone like Pacific, Mountain, Central, Indian, or any other common reference. Also infer the timezone if a country or city is mentioned. Examples:
+            - PST or Pacific → "America/Los_Angeles"
+            - IST or Indian → "Asia/Kolkata"
+            - EST or Eastern → "America/New_York"
+            - CET or Central European → "Europe/Berlin"
+            - If instead the user mentions a country (e.g., India, USA, Germany) or a city (e.g., New York, Berlin, Mumbai), determine the corresponding timezone and return the appropriate IANA name as above.
+            If no timezone is mentioned, return "Asia/Kolkata".
+          
+          Today's date is: ${today}
+          - If no year is mentioned, assume the upcoming date in the current year (${today.split("-")[0]}).
+          - If a past year is mentioned (e.g., 2023), correct it to the current year.
+          - If the year is in the future (e.g., 2026), preserve it as is.
+          
           - purpose: the purpose of the meeting or call, if mentioned (e.g. "site visit", "demo discussion")
           - sentiment: classify sentiment based on the conversation and the assistant's system prompt. Use:
-          - positive
-          - negative           
-          - neutral 
-          - no_response (if the transcription is empty or lacks meaningful content)
+            - positive
+            - negative           
+            - neutral 
+            - no_response (if the transcription is empty or lacks meaningful content)
           
           If any field is missing, use "-" for that field.
           
@@ -114,15 +138,16 @@ export default async function handler(req, res) {
             "email": "<email_or_->",
             "phone": "<phone_or_->",
             "appointmentDate": "<date_and_time_or_->",
-            "purpose": "<purpose_or_->"
+            "timezone": "<IANA_zone_or_->",
+            "purpose": "<purpose_or_->",
             "sentiment": "positive" | "negative" | "neutral" | "no_response"
           }
-
           
           
           Call Object:
-${JSON.stringify(callPayload, null, 2)}
+          ${JSON.stringify(callPayload, null, 2)}
           `.trim();
+
 
           try {
             const aiResponse = await openai.chat.completions.create({
@@ -153,6 +178,9 @@ ${JSON.stringify(callPayload, null, 2)}
 
             console.log("📤 Cleaned Extracted Info:", result);
 
+            const durationInSeconds = call.startedAt && call.endedAt
+              ? (new Date(call.endedAt) - new Date(call.startedAt)) / 1000
+              : 0;
             await collection.updateOne(
               { assistantId: result.assistantId },
               {
@@ -162,10 +190,12 @@ ${JSON.stringify(callPayload, null, 2)}
                     email: result.email,
                     phone: result.phone,
                     appointmentDate: result.appointmentDate,
+                    timezone: result.timezone || "-",
                     purpose: result.purpose,
                     sentiment: result.sentiment,
                     summary: call.summary || "-",
-                    customerNumber: userPhoneNumber
+                    customerNumber: userPhoneNumber,
+                    duration: parseFloat(durationInSeconds.toFixed(2))
                   },
                   updatedAt: new Date(),
                 },

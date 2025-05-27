@@ -1,37 +1,35 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
-import { connectToDatabase } from '../../lib/db';
+import { connectToDatabase } from '../../../lib/db';
 
-const client_id = process.env.GOOGLE_CLIENT_ID;
-const client_secret = process.env.GOOGLE_CLIENT_SECRET;
-const redirect_uri = process.env.GOOGLE_REDIRECT_URI; // Should match what’s registered in Google Console
+const client_id = process.env.MONDAY_CLIENT_ID;
+const client_secret = process.env.MONDAY_CLIENT_SECRET;
+const redirect_uri = process.env.MONDAY_REDIRECT_URI; // Must match the one in Monday Developer Console
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default async function handler(req, res) {
-  const { code } = req.query; // ✅ Google sends code as query param
+  const { code } = req.query; // Monday redirects with ?code=...
 
   if (!code) {
     return res.status(400).json({ error: 'Missing authorization code' });
   }
 
   try {
-    // Exchange code for access & refresh tokens
-    const tokenRes = await axios.post('https://oauth2.googleapis.com/token', null, {
+    // Step 1: Exchange code for access token
+    const tokenRes = await axios.post('https://auth.monday.com/oauth2/token', null, {
       params: {
         code,
         client_id,
         client_secret,
         redirect_uri,
-        grant_type: 'authorization_code',
       },
     });
 
-    const { access_token, refresh_token } = tokenRes.data;
-    console.log(`✅ Access Token: ${access_token}`);
-    console.log(`✅ Refresh Token: ${refresh_token}`);
+    const { access_token } = tokenRes.data;
+    console.log(`✅ Monday Access Token: ${access_token}`);
 
-    // Read and verify JWT from httpOnly cookie
+    // Step 2: Extract user from httpOnly cookie
     const cookies = cookie.parse(req.headers.cookie || '');
     const token = cookies.token;
 
@@ -49,14 +47,13 @@ export default async function handler(req, res) {
       return res.redirect(302, `${BASE_URL}/agents/ConnectCalender?error=invalid_token`);
     }
 
-    // Save tokens in the database
+    // Step 3: Store Monday access token in DB
     const { db } = await connectToDatabase();
     const updateRes = await db.collection('users').updateOne(
       { email },
       {
         $set: {
-          googleAccessToken: access_token,
-          googleRefreshToken: refresh_token,
+          mondayAccessToken: access_token,
         },
       }
     );
@@ -66,9 +63,9 @@ export default async function handler(req, res) {
     }
 
     // ✅ Redirect back to frontend
-    return res.redirect(302, `${BASE_URL}/agents/ConnectCalender?success=true`);
+    return res.redirect(302, `${BASE_URL}/agents/ConnectCalender?success=monday_connected`);
   } catch (err) {
-    console.error('❌ Token exchange error or DB save failure:', err.response?.data || err.message);
-    return res.redirect(302, `${BASE_URL}/agents/ConnectCalender?error=token_exchange_failed`);
+    console.error('❌ Monday token exchange error:', err.response?.data || err.message);
+    return res.redirect(302, `${BASE_URL}/agents/ConnectCalender?error=monday_token_failed`);
   }
 }

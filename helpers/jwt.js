@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 export function generateToken(user) {
   console.log('Generating token for user:', user);
   try {
-    const token = jwt.sign({ email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
     console.log('Token generated:', token);
     return token;
   } catch (error) {

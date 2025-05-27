@@ -1,10 +1,13 @@
 // C:/botGIT/botGIT-main/components/sidebar.js
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FaUserCircle, FaUserPlus, FaHashtag, FaCalendar, FaAd } from "react-icons/fa";
-import { FaSquarePhone, FaChartSimple } from "react-icons/fa6";
+import { FaUserCircle, FaUserPlus, FaHashtag, FaCalendar, FaAd, FaSignOutAlt } from "react-icons/fa";
+import { FaSquarePhone, FaChartSimple,  } from "react-icons/fa6";
+import { useRouter } from "next/router";
+import Cookies from "js-cookie"; 
 const Sidebar = ({ clientId }) => {
   const [storedClientId, setStoredClientId] = useState(clientId || null);
+
 
   useEffect(() => {
     if (!storedClientId) {
@@ -12,6 +15,13 @@ const Sidebar = ({ clientId }) => {
       setStoredClientId(clientIdFromStorage);
     }
   }, [storedClientId]);
+
+  const router = useRouter();
+  const handleLogout = async () => {
+    await fetch("/api/logout"); // Invalidate cookie server-side
+    router.push("/");
+  };
+  
 
   return (
     <nav className="w-56 bg-white text-gray-900 shadow-lg p-5 flex flex-col justify-between min-h-screen border-r border-gray-300">
@@ -78,6 +88,15 @@ const Sidebar = ({ clientId }) => {
           </li>
 
         </ul>
+      </div>
+      <div className="mt-10">
+        <button
+          onClick={handleLogout}
+          className="flex items-center space-x-3 text-red-600 hover:bg-red-50 p-3 rounded-lg w-full"
+        >
+          <FaSignOutAlt />
+          <span>Logout</span>
+        </button>
       </div>
     </nav>
   );

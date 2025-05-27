@@ -1,51 +1,7 @@
 // import { connectToDatabase } from "../../../lib/db";
-
-// export default async function handler(req, res) {
-//   if (req.method !== "GET") {
-//     return res.status(405).json({ message: "Method Not Allowed" });
-//   }
-
-//   try {
-//     const { db } = await connectToDatabase();
-
-//     // Fetch all sentiment documents
-//     const sentimentDocs = await db.collection("sentiment").find({}).toArray();
-
-//     const results = sentimentDocs.map((doc) => {
-//       const summary = {
-//         agent_id: doc.agent_id,
-//         positive: 0,
-//         negative: 0,
-//         neutral: 0,
-//         no_response: 0,
-//       };
-
-//       // Loop over each key in the document (e.g., call1, call2, ...)
-//       Object.keys(doc).forEach((key) => {
-//         if (key.startsWith("call") && doc[key]?.sentiment) {
-//           const sentiment = doc[key].sentiment.toLowerCase();
-//           if (summary.hasOwnProperty(sentiment)) {
-//             summary[sentiment]++;
-//           }
-//         }
-//       });
-
-//       return summary;
-//     });
-
-//     return res.status(200).json({ sentiment_summary: results });
-//   } catch (error) {
-//     console.error("❌ Error calculating sentiment analysis:", error);
-//     return res.status(500).json({ message: "Internal Server Error" });
-//   }
-// }
-
-
-// import { connectToDatabase } from "../../../lib/db";
 // import cors from "../../../lib/cors-middleware";
 
 // export default async function handler(req, res) {
-//   // Run CORS first
 //   await cors(req, res);
 
 //   if (req.method !== "GET") {
@@ -55,32 +11,61 @@
 //   try {
 //     const { db } = await connectToDatabase();
 
-//     const sentimentDocs = await db.collection("sentiments").find({}).toArray();
+//     const assistantIdParam = req.query.assistantId;
+//     let matchFilter = {};
 
-//     const results = sentimentDocs.map((doc) => {
+//     // Support multiple assistant IDs via query param: ?assistantId=id1,id2,id3
+//     if (assistantIdParam) {
+//       const ids = Array.isArray(assistantIdParam)
+//         ? assistantIdParam
+//         : assistantIdParam.split(",").map((id) => id.trim());
+
+//       matchFilter = {
+//         assistantId: { $in: ids }
+//       };
+//     }
+
+//     const docs = await db
+//       .collection("userdatafromcallwithsentiment")
+//       .find(matchFilter)
+//       .toArray();
+
+//     const results = [];
+
+//     for (const doc of docs) {
 //       const summary = {
-//         agent_id: doc.agent_id,
+//         assistantId: doc.assistantId,
 //         positive: 0,
 //         negative: 0,
 //         neutral: 0,
 //         no_response: 0,
+//         total_calls: 0,
 //       };
 
-//       Object.keys(doc).forEach((key) => {
-//         if (key.startsWith("call") && doc[key]?.sentiment) {
-//           const sentiment = doc[key].sentiment.toLowerCase();
-//           if (summary.hasOwnProperty(sentiment)) {
-//             summary[sentiment]++;
-//           }
+//       const calls = doc.data || {};
+
+//       Object.values(calls).forEach((entry) => {
+//         const sentiment = (entry.sentiment || "no_response").toLowerCase();
+//         if (summary.hasOwnProperty(sentiment)) {
+//           summary[sentiment]++;
+//         } else {
+//           summary.no_response++;
 //         }
 //       });
 
-//       return summary;
-//     });
+//       // Recalculate total_calls as the sum of sentiments
+//       summary.total_calls =
+//         summary.positive +
+//         summary.negative +
+//         summary.neutral +
+//         summary.no_response;
+
+//       results.push(summary);
+//     }
 
 //     return res.status(200).json({ sentiment_summary: results });
 //   } catch (error) {
-//     console.error("❌ Error calculating sentiment analysis:", error);
+//     console.error("❌ Error generating sentiment summary:", error);
 //     return res.status(500).json({ message: "Internal Server Error" });
 //   }
 // }
@@ -99,32 +84,73 @@ export default async function handler(req, res) {
   try {
     const { db } = await connectToDatabase();
 
-    const sentimentDocs = await db.collection("sentiments").find({}).toArray();
+    const assistantIdParam = req.query.assistantId;
+    let matchFilter = {};
 
-    const results = sentimentDocs.map((doc) => {
+    // Support multiple assistant IDs via query param: ?assistantId=id1,id2,id3
+    if (assistantIdParam) {
+      const ids = Array.isArray(assistantIdParam)
+        ? assistantIdParam
+        : assistantIdParam.split(",").map((id) => id.trim());
+
+      matchFilter = {
+        assistantId: { $in: ids }
+      };
+    }
+
+    const docs = await db
+      .collection("userdatafromcallwithsentiment")
+      .find(matchFilter)
+      .toArray();
+
+    const results = [];
+
+    for (const doc of docs) {
       const summary = {
-        agent_id: doc.agent_id,
+        assistantId: doc.assistantId,
         positive: 0,
         negative: 0,
         neutral: 0,
         no_response: 0,
+        total_calls: 0,
+        answered: 0,
+        unanswered: 0,
       };
 
-      if (Array.isArray(doc.executions)) {
-        for (const exec of doc.executions) {
-          const sentiment = exec.sentiment?.toLowerCase();
-          if (summary.hasOwnProperty(sentiment)) {
-            summary[sentiment]++;
-          }
-        }
-      }
+      const calls = doc.data || {};
 
-      return summary;
-    });
+      Object.values(calls).forEach((entry) => {
+        const sentiment = (entry.sentiment || "no_response").toLowerCase();
+        const duration = parseFloat(entry.duration || 0);
+
+        // Sentiment tracking
+        if (summary.hasOwnProperty(sentiment)) {
+          summary[sentiment]++;
+        } else {
+          summary.no_response++;
+        }
+
+        // Call status tracking
+        if (duration > 0) {
+          summary.answered++;
+        } else {
+          summary.unanswered++;
+        }
+      });
+
+      // Total calls is the sum of all sentiment categories
+      summary.total_calls =
+        summary.positive +
+        summary.negative +
+        summary.neutral +
+        summary.no_response;
+
+      results.push(summary);
+    }
 
     return res.status(200).json({ sentiment_summary: results });
   } catch (error) {
-    console.error("❌ Error calculating sentiment analysis:", error);
+    console.error("❌ Error generating sentiment summary:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }

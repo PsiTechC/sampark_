@@ -5,7 +5,7 @@ const Home = () => {
   const router = useRouter();
 
   useEffect(() => {
-    router.push('/home'); // Redirect to the login page
+    router.push('/home');
   }, [router]);
 
   return null;

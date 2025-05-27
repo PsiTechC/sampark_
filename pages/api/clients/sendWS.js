@@ -10,10 +10,11 @@ export async function sendingWhatsapp(number, pdfUrl) {
   const requestBody = {
     to_number: number,
     media_url: pdfUrl,
+    media_name: "Project Brochure",
     parameters: ["+91999999999"], 
     messages: null,
     template_name: "ava_demo_v1",
-    whatsappRequestType: "TEMPLATE_WITH_DOCUMENT",
+    whatsapp_request_type: "TEMPLATE_WITH_DOCUMENT",
   };
 
   try {

@@ -1,97 +1,3 @@
-// import React, { useEffect, useState } from "react";
-// import Sidebar from "@/components/sidebar";
-
-// function ConnectCalender() {
-//   const [isVerified, setIsVerified] = useState(null);
-//   const [status, setStatus] = useState("");
-
-//   useEffect(() => {
-//     // 1. Verify user on mount
-//     fetch("/api/verify-token", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({}), // Token is in httpOnly cookie
-//     })
-//       .then((res) => res.json())
-//       .then((data) => {
-//         if (data.isVerified) {
-//           console.log("✅ User is verified");
-//           setIsVerified(true);
-//         } else {
-//           console.log("❌ User is not verified");
-//           setIsVerified(false);
-//         }
-//       })
-//       .catch((err) => {
-//         console.error("Error verifying token:", err);
-//         setIsVerified(false);
-//       });
-
-//     // 2. Handle Google OAuth code from URL
-//     const urlParams = new URLSearchParams(window.location.search);
-//     const code = urlParams.get("code");
-
-//     if (code) {
-//       fetch("/api/testcal", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ code }), // Backend reads token from cookie
-//       })
-//         .then((res) => res.json())
-//         .then((data) => {
-//           if (data.message === "Google tokens saved successfully") {
-//             setStatus("✅ Google Calendar connected successfully.");
-//           } else {
-//             setStatus(`❌ Error: ${data.error || "Unknown error"}`);
-//           }
-//           // Clean up query param
-//           window.history.replaceState(null, "", "/agents/ConnectCalender");
-//         })
-//         .catch((err) => {
-//           console.error("❌ Failed to save Google tokens:", err);
-//           setStatus("❌ Failed to connect Google Calendar.");
-//         });
-//     }
-//   }, []);
-
-//   const handleGoogleCalendarConnect = () => {
-//     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-//     const redirectUri = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI;
-//     const scope = "https://www.googleapis.com/auth/calendar";
-
-//     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
-
-//     window.open(authUrl, "_self");
-//   };
-
-//   return (
-//     <div className="flex min-h-screen bg-gray-50">
-//       <Sidebar />
-//       <div className="flex flex-col items-start p-8">
-//         <h1 className="text-2xl font-bold mb-4 text-gray-800">Connect Google Calendar</h1>
-
-//         {isVerified === false && (
-//           <p className="text-red-600 mb-4 text-sm font-medium">Please verify your email before connecting calendar.</p>
-//         )}
-
-//         <button
-//           onClick={handleGoogleCalendarConnect}
-//           className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-//           disabled={isVerified === false}
-//         >
-//           Connect Google Calendar
-//         </button>
-
-//         {status && (
-//           <p className="mt-4 text-sm font-medium text-blue-700">{status}</p>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default ConnectCalender;
-
 import React, { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar";
 import Alert from "../../components/ui/Alerts"; // Adjust path if different
@@ -162,6 +68,17 @@ function ConnectCalender() {
     }
   }, [isVerified]);
 
+
+  const handleMondayConnect = () => {
+    const mondayClientId = process.env.NEXT_PUBLIC_MONDAY_CLIENT_ID;
+    const mondayRedirectUri = process.env.NEXT_PUBLIC_MONDAY_REDIRECT_URI;
+  
+    const authUrl = `https://auth.monday.com/oauth2/authorize?client_id=${mondayClientId}&redirect_uri=${mondayRedirectUri}&response_type=code`;
+  
+    window.open(authUrl, "_self");
+  };
+
+  
   const handleGoogleCalendarConnect = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     const redirectUri = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI;
@@ -216,7 +133,16 @@ function ConnectCalender() {
         <h1 className="text-2xl font-bold mb-4 text-gray-800">Connect Google Calendar</h1>
 
         {isVerified === false && (
-          <p className="text-red-600 mb-4 text-sm font-medium">Please verify your email before connecting calendar.</p>
+          <p className="text-red-600 mb-4 text-sm font-medium">
+          Your email is not verified or needs to be verified again to connect Google Calendar.{" "}
+          <a
+            href={process.env.NEXT_PUBLIC_API_BASE_URL}
+            className="underline text-blue-600 hover:text-blue-800 ml-2"
+          >
+            Logout
+          </a>
+        </p>
+        
         )}
 
         {isVerified && calendarConnected ? (

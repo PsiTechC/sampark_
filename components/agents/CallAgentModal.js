@@ -151,7 +151,6 @@ export default function CallAgentModal({ agentId, isVapiAssistant = false, onClo
         >
           <option value="+1">+1 (US)</option>
           <option value="+91">+91 (India)</option>
-          {/* Add more country codes as needed */}
         </select>
         <input
           className="border p-2 rounded flex-1"
