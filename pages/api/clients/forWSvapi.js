@@ -57,11 +57,11 @@ export default async function handler(req, res) {
 
           if (call.status !== "ended") continue;
           if (existingDoc?.data?.[callId]) {
-            console.log(`⏭️ Skipping already processed call: ${callId}`);
+            // console.log(`⏭️ Skipping already processed call: ${callId}`);
             continue;
           }
           if (!call.transcript || call.transcript.trim() === "") {
-            console.log(`⏭️ Skipping call with empty transcript: ${callId}`);
+            // console.log(`⏭️ Skipping call with empty transcript: ${callId}`);
             continue;
           }
 

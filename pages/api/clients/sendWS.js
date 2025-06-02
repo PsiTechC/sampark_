@@ -2,7 +2,7 @@ import { connectToDatabase } from "../../../lib/db";
 import CorsMiddleware from "../../../lib/cors-middleware";
 
 
-export async function sendingWhatsapp(number, pdfUrl) {
+export async function sendingWhatsapp(number, pdfUrl, companyName, companyPhone) {
   console.log(`📤 Sending WA message with document to ${number}... URL: ${pdfUrl}`);
 
   const apiUrl = 'https://whatsapp-api-backend-production.up.railway.app/api/send-message';
@@ -11,9 +11,9 @@ export async function sendingWhatsapp(number, pdfUrl) {
     to_number: number,
     media_url: pdfUrl,
     media_name: "Project Brochure",
-    parameters: ["+91999999999"], 
+    parameters: [companyName, companyPhone],
     messages: null,
-    template_name: "ava_demo_v1",
+    template_name: "pdf_req_v1",
     whatsapp_request_type: "TEMPLATE_WITH_DOCUMENT",
   };
 
@@ -112,7 +112,23 @@ export default async function handler(req, res) {
 
         console.log(`📣 Sending brochure for call ${callId} to ${phone}`);
 
-        const result = await sendingWhatsapp(phone, pdfUrl);
+        // Step 1: Get userId from useragentmapping
+        const userAgentMapping = await db.collection("useragentmapping").findOne({
+          assistants: assistantId,
+        });
+
+        let companyName = "SamparkAI";
+        let companyPhone = "+91XXXXXXXXXX";
+
+        if (userAgentMapping && userAgentMapping.userId) {
+          const userDoc = await db.collection("users").findOne({ _id: userAgentMapping.userId });
+          if (userDoc) {
+            companyName = userDoc.companyName || companyName;
+            companyPhone = userDoc.phoneNumber || companyPhone;
+          }
+        }
+
+        const result = await sendingWhatsapp(phone, pdfUrl, companyName, companyPhone);
 
         if (result.status === "success") {
           console.log(`✅ WhatsApp sent for call ${callId}, updating DB`);

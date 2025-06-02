@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { email, password } = req.body;
+  const { email, password, companyName, phoneNumber } = req.body;
 
   try {
     const { db } = await connectToDatabase();
@@ -38,6 +38,8 @@ export default async function handler(req, res) {
       firstLogin: true,
       verified: false, // Set the account to unverified initially
       otp: otp, // Store OTP in the database for verification later
+      companyName,
+      phoneNumber
     });
 
     // Send the OTP to the user's email

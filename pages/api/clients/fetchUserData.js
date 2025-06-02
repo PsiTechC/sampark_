@@ -5,7 +5,7 @@ import CorsMiddleware from "../../../lib/cors-middleware";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const today = new Date().toISOString(); // e.g. "2025-05-20T14:53:00.000Z"
+
 
 
 function cleanEmail(email) {
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   }
 
   await CorsMiddleware(req, res);
-
+  const today = new Date().toISOString(); 
   try {
     const { db } = await connectToDatabase();
     const collection = db.collection("userdatafromcallwithsentiment");
@@ -68,12 +68,12 @@ export default async function handler(req, res) {
           const userPhoneNumber = call.customer?.number || "-";
 
           if (call.status !== "ended") {
-            console.log(`⏭️ Skipping call ${callId} with status: ${call.status}`);
+            // console.log(`⏭️ Skipping call ${callId} with status: ${call.status}`);
             continue;
           }
           // Skip if this callId already exists
           if (existingDoc?.data?.[callId]) {
-            console.log(`⏭️ Skipping already processed call: ${callId}`);
+            // console.log(`⏭️ Skipping already processed call: ${callId}`);
             continue;
           }
 

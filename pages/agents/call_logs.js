@@ -109,20 +109,38 @@ export default function CallLogs() {
   const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserDataAndThenCallMap = async () => {
       try {
+        const callUserMap = {};
+
+        // Step 1: Fetch initial user data
         const res = await fetch(`${BASE_URL}/api/clients/fetchUserData`);
         if (!res.ok) throw new Error("Failed to fetch user data");
-  
-        await res.json(); // Optional: handle if you want to process the response
+
+        await res.json(); // Ignoring the response since it's just a trigger
+
+        // Step 2: Now fetch user data from call
+        const res2 = await fetch(`${BASE_URL}/api/clients/userDataFromCall`);
+        const userDataFromCall = await res2.json();
+
+        (userDataFromCall.data || []).forEach((entry) => {
+          const assistantId = entry.assistantId;
+          const callData = entry.data || {};
+          Object.entries(callData).forEach(([callId, userDetails]) => {
+            callUserMap[callId] = userDetails;
+          });
+        });
+
+        // Step 3: Set the final map
+        setUserDataMap(callUserMap);
+
       } catch (err) {
-        console.error("❌ Error fetching user data:", err);
+        console.error("❌ Error in chained user data fetch:", err);
       }
     };
-  
-    fetchUserData();
+
+    fetchUserDataAndThenCallMap();
   }, []);
-  
 
 
   useEffect(() => {
@@ -381,7 +399,7 @@ export default function CallLogs() {
               className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700"
             >
               <option value="vapi">Vapi</option>
-              <option value="bolna">Bolna</option>
+              {/* <option value="bolna">Bolna</option> */}
             </select>
           </div>
 

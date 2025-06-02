@@ -45,47 +45,76 @@ async function sendEmailNotification(recipientEmail, appointmentDate, meetingLin
   }
 }
 
-async function sendWhatsAppNotification(phoneNumber, appointmentDate, meetingLink, timezone = "Asia/Kolkata") {
+async function sendWhatsAppNotification(phoneNumber, appointmentDate, meetingLink, timezone = "Asia/Kolkata", companyName, companyPhone, maxRetries = 10) {
   const dt = DateTime.fromISO(appointmentDate, { zone: 'utc' }).setZone(timezone);
-
   const readableDate = dt.toFormat("d LLLL yyyy 'at' h:mm a");
 
   const apiUrl = "https://whatsapp-api-backend-production.up.railway.app/api/send-message";
   const apiKey = process.env.WHATSAPP_API_KEY;
 
-  try {
-    const res = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        'Authorization': `Bearer ${process.env.WHATSAPP_BEARER_TOKEN}`
-      },
-      body: JSON.stringify({
-        to_number: phoneNumber,
-        template_name: "ava_demo_v2",
-        whatsapp_request_type: "TEMPLATE",
-        parameters: [
-          `${readableDate} (${timezone} timezone)`,
-          meetingLink
-        ],
-      }),
-    });
+  const payload = {
+    to_number: phoneNumber,
+    template_name: "appointment_v3",
+    whatsapp_request_type: "TEMPLATE",
+    parameters: [
+      companyName,
+      `${readableDate} (${timezone} timezone)`,
+      meetingLink,
+      companyPhone,
+    ],
+  };
 
-    const data = await res.json();
-    if (!res.ok) {
-      console.error("❌ Failed to send WhatsApp message:", data.message || data);
-      return false;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          'Authorization': `Bearer ${process.env.WHATSAPP_BEARER_TOKEN}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(`❌ Attempt ${attempt} failed:`, data.message || data);
+        console.error("🔍 Full API response:", data);
+
+
+        // Retry only for specific error message
+        if (
+          attempt < maxRetries &&
+          typeof data.message === "string" &&
+          data.message.includes("Application failed to respond")
+        ) {
+          const waitTime = 1000 * 2 ** (attempt - 1); // exponential backoff
+          console.warn(`⏳ Retrying in ${waitTime / 1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+
+        return false;
+      }
+
+      console.log("📲 WhatsApp message sent successfully:", data);
+      return true;
+    } catch (err) {
+      console.error(`❌ Attempt ${attempt} failed due to error:`, err.message);
+
+      if (attempt < maxRetries) {
+        const waitTime = 1000 * 2 ** (attempt - 1);
+        console.warn(`⏳ Retrying in ${waitTime / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        return false;
+      }
     }
-
-    console.log("📲 WhatsApp message sent successfully:", data);
-    return true;
-  } catch (err) {
-    console.error("❌ WhatsApp message error:", err.message);
-    return false;
   }
-}
 
+  return false;
+}
 
 
 
@@ -137,7 +166,7 @@ async function createGoogleCalendarEvent(accessToken, eventDetails, refreshToken
   if (email && email !== "-" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     event.attendees = [{ email }];
   }
-  
+
 
   let res = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
     method: "POST",
@@ -169,7 +198,13 @@ async function createGoogleCalendarEvent(accessToken, eventDetails, refreshToken
     });
   }
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    data = { error: 'Invalid JSON response', statusText: res.statusText };
+  }
+
   if (!res.ok) {
     console.error("❌ Calendar API error:", data.error || data);
     return false;
@@ -240,12 +275,28 @@ export default async function handler(req, res) {
         let emailSent = false;
         let whatsappSent = false;
 
+
+        const userAgentMapping = await db.collection("useragentmapping").findOne({
+          assistants: assistantId,
+        });
+
+        let companyName = "SamparkAI";
+        let companyPhone = "+91XXXXXXXXXX";
+
+        if (userAgentMapping && userAgentMapping.userId) {
+          const userDoc = await db.collection("users").findOne({ _id: userAgentMapping.userId });
+          if (userDoc) {
+            companyName = userDoc.companyName || companyName;
+            companyPhone = userDoc.phoneNumber || companyPhone;
+          }
+        }
+
         if (email && email !== "-") {
           emailSent = await sendEmailNotification(email, appointmentDate, meetingLink, call.timezone);
         }
 
         if (customerNumber && customerNumber !== "-") {
-          whatsappSent = await sendWhatsAppNotification(customerNumber, appointmentDate, meetingLink, call.timezone);
+          whatsappSent = await sendWhatsAppNotification(customerNumber, appointmentDate, meetingLink, call.timezone, companyName, companyPhone);
         }
 
         if (!emailSent && !whatsappSent) {
@@ -271,7 +322,7 @@ export default async function handler(req, res) {
           );
           console.log(`📝 Marked isMailSend: true for call ${callId}`);
         }
-        
+
       }
     }
 

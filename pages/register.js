@@ -13,6 +13,9 @@ const Register = () => {
   const [isOtpMode, setIsOtpMode] = useState(false); // Control OTP mode
   const [userId, setUserId] = useState(''); // To store userId for email verification
   const router = useRouter();
+  const [companyName, setCompanyName] = useState('');
+const [phoneNumber, setPhoneNumber] = useState('');
+
 
   // Check if the login mode is triggered by the query parameter
   useEffect(() => {
@@ -49,7 +52,7 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post('/api/register/registeration', { email, password });
+      const response = await axios.post('/api/register/registeration', { email, password, companyName, phoneNumber });
       setUserId(response.data.userId); // Set the userId for email verification
       setIsOtpMode(true); // Switch to OTP mode after successful registration
     } catch (error) {
@@ -80,6 +83,18 @@ const Register = () => {
 
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
+                  <label className="block mb-1">Company Name</label>
+                  <input
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    required
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+
+
+                <div className="mb-4">
                   <label className="block mb-1">Email</label>
                   <input
                     type="email"
@@ -107,6 +122,16 @@ const Register = () => {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
                     required
                     className="w-full p-2 border rounded"
                   />
