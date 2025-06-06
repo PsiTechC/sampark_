@@ -60,8 +60,17 @@ export default async function handler(req, res) {
         })
       );
       
-      return res.status(200).json({ redirectUrl: `/client-dashboard/${user._id}`, clientId: user._id });
+      // return res.status(200).json({ redirectUrl: `/client-dashboard/${user._id}`, clientId: user._id });
       
+      let redirectUrl;
+if (user.role === 'admin') {
+  redirectUrl = '/agents/Admin_Panel/Admin_page';
+
+} else {
+  redirectUrl = `/client-dashboard/${user._id}`;
+}
+
+return res.status(200).json({ redirectUrl, clientId: user._id });
     } catch (error) {
       console.error('Login error:', error);
       return res.status(500).json({ message: 'Internal server error' });

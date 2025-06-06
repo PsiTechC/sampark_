@@ -239,6 +239,8 @@
 // }
 
 
+
+
 import OpenAI from "openai";
 import { connectToDatabase } from "../../../lib/db";
 import CorsMiddleware from "../../../lib/cors-middleware";
@@ -318,6 +320,9 @@ export default async function handler(req, res) {
             continue;
           }
 
+
+          const callSystemPrompt = call.artifact?.messages?.find((msg) => msg.role === "system")?.message || "-";
+          
           const callPayload = {
             id: callId || "-",
             assistantId: assistantId || "-",
@@ -325,6 +330,7 @@ export default async function handler(req, res) {
             summary: call.summary || "-",
             systemPrompt: call.artifact?.messages?.find((msg) => msg.role === "system")?.message || "-",
           };
+
 
           const userPrompt = `
           You are an information extraction AI. From the following call object, extract these fields:
@@ -371,7 +377,26 @@ export default async function handler(req, res) {
           
           If any field is missing, use "-" for that field.
 
-          - Additionally, identify any questions the user asked that were not clearly answered by the assistant.
+          - Additionally, identify any questions the **human user** asked that were **not fully or clearly answered** by the assistant. You are detecting *unanswered or unresolved questions*.
+
+             A question is considered **unanswered** if:
+               - The assistant explicitly ignores the question.
+               - The assistant replies with a vague or evasive response (e.g., "I'll get back to you", "Let me check", "I'm not sure").
+               - The assistant misunderstands the question or provides an unrelated answer.
+               - The assistant deflects (e.g., “please visit our website” without actually answering).
+               - The assistant provides a response that does not actually resolve the user’s query (e.g., giving a partial or indirect answer to a specific question).
+               - The assistant repeats back the question without progressing toward an answer.
+               - The assistant misunderstands and answers a different question.
+               - The assistant goes off-topic or delivers marketing fluff instead of answering the actual question.
+
+             A question is **not** considered unanswered if:
+              - The assistant provides a reasonably complete and direct response to the question.
+              - The question is rhetorical, sarcastic, or not meant to be answered.
+              - The assistant gives clear steps or explanations that address the question's intent.
+              - The user rephrases or answers their own question.
+  
+            ❗Be strict: do not include questions that were even *partially* addressed, unless it is clear the user did not get the information they were looking for.
+
              Respond with a second JSON object like:
  
              {
@@ -402,7 +427,7 @@ export default async function handler(req, res) {
             "sentiment": "positive" | "negative" | "neutral" | "no_response"
           }
           
-          
+
           Call Object:
           ${JSON.stringify(callPayload, null, 2)}
           `.trim();
@@ -414,7 +439,11 @@ export default async function handler(req, res) {
               messages: [
                 {
                   role: "system",
-                  content: "You extract structured data from call objects.",
+                  content: "You are analyzing a call handled by an AI assistant. You will extract structured information and identify unanswered questions.",
+                },
+                {
+                  role: "system",
+                  content: `This was the instruction given to the AI assistant during the call (its internal system prompt):\n\n${callSystemPrompt}`,
                 },
                 {
                   role: "user",
