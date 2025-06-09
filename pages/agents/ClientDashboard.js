@@ -229,7 +229,7 @@ function ClientDashboard() {
                     <th className="px-4 py-2">Agent</th>
                     <th className="px-4 py-2">Amount Spent</th>
                     <th className="px-4 py-2">Total Calls</th>
-                    <th className="px-4 py-2">Call Status</th>
+                    {/* <th className="px-4 py-2">Call Status</th> */}
                     <th className="px-4 py-2">Sentiment</th>
                   </tr>
                 </thead>
@@ -251,7 +251,7 @@ function ClientDashboard() {
                         <td className="px-4 py-2 font-medium text-gray-900">{agent.agent_name || "Unknown"}</td>
                         <td className="px-4 py-2 text-gray-700">${agent.totalCost || "0.00"}</td>
                         <td className="px-4 py-2 text-gray-700">{totalCalls}</td>
-                        <td className="px-4 py-2">
+                        {/* <td className="px-4 py-2">
                           <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1">
                             <span>Answered: {answered}</span>
                             <span>Unanswered: {unanswered}</span>
@@ -268,7 +268,7 @@ function ClientDashboard() {
                               title={`Unanswered: ${unanswered}`}
                             />
                           </div>
-                        </td>
+                        </td> */}
                         <td className="px-4 py-2">
                           <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1 flex-wrap gap-x-2">
                             <span>👍 {positive}</span>

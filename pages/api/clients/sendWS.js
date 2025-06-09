@@ -73,13 +73,13 @@ export default async function handler(req, res) {
 
       const whatsappDoc = await whatsappCollection.findOne({ assistantId });
       if (!whatsappDoc || !whatsappDoc.data) continue;
+      const pdfDocs = await s3pdfCollection.find({ agentId: assistantId }).toArray();
 
-      const s3doc = await s3pdfCollection.findOne({ agentId: assistantId });
-      const pdfUrl = s3doc?.url;
-      if (!pdfUrl) {
-        console.warn(`❌ No brochure URL for assistantId ${assistantId}`);
+      if (!pdfDocs.length) {
+        console.warn(`❌ No brochure PDFs for assistantId ${assistantId}`);
         continue;
       }
+      
 
       // Fetch all calls for this assistant
       const callsRes = await fetch(`https://api.vapi.ai/call?assistantId=${assistantId}`, {
@@ -128,15 +128,23 @@ export default async function handler(req, res) {
           }
         }
 
-        const result = await sendingWhatsapp(phone, pdfUrl, companyName, companyPhone);
+        let allSent = true;
 
-        if (result.status === "success") {
-          console.log(`✅ WhatsApp sent for call ${callId}, updating DB`);
-          await whatsappCollection.updateOne(
-            { assistantId },
-            { $set: { [`data.${callId}.isUserAskedForBrochure`]: false } }
-          );
+        for (const pdf of pdfDocs) {
+          const result = await sendingWhatsapp(phone, pdf.url, companyName, companyPhone);
+          if (result.status === "error") {
+            allSent = false;
+            console.warn(`❌ Failed to send ${pdf.name} to ${phone}:`, result.error);
+          }
         }
+        
+        // ✅ After attempting all PDFs
+        console.log(`📤 Finished brochure attempts for call ${callId}`);
+        await whatsappCollection.updateOne(
+          { assistantId },
+          { $set: { [`data.${callId}.isUserAskedForBrochure`]: false } }
+        );
+        
       }
     }
 

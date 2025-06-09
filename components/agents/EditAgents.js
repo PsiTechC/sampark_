@@ -95,7 +95,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   const [refreshAgentFlag, setRefreshAgentFlag] = useState(false);
 
   const [pdfStatusMessage, setPdfStatusMessage] = useState("Checking for uploaded PDF...");
-  const [existingPdfUrl, setExistingPdfUrl] = useState(null);
+  const [existingPdfUrl, setExistingPdfUrl] = useState([]);
 
 
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -159,8 +159,8 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       const res = await fetch(`${BASE_URL}//api/clients/ispdfupload?agentId=${agentId}`);
       const data = await res.json();
 
-      if (res.ok && data.url) {
-        setExistingPdfUrl(data.url);
+      if (res.ok && data.files) {
+        setExistingPdfUrl(data.files);
         setPdfStatusMessage("✅ File already uploaded:");
       } else {
         setExistingPdfUrl(null);
@@ -172,7 +172,12 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
     }
   };
 
-  fetchExistingPdf();
+  useEffect(() => {
+    if (agentId) {
+      fetchExistingPdf();
+    }
+  }, [agentId]);
+  
 
 
   const handleSaveAgent = async () => {
@@ -315,63 +320,38 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
   const handleFileUpload = async () => {
     if (!selectedFiles.length) {
-      setAlert({ type: "warning", message: "⚠️ Please select at least one file first.", visible: true });
+      setAlert({ type: "warning", message: "⚠️ Please select at least one file.", visible: true });
       return;
     }
 
     const formData = new FormData();
     selectedFiles.forEach((file) => formData.append("files", file));
 
-    try {
-      const res = await fetch("/api/Knowledgebase/uploadKnowledgebase", {
-        method: "POST",
-        body: formData,
+    const res = await fetch(`${BASE_URL}/api/clients/pdfupload?agentId=${agentId}`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      setExistingPdfUrl(prev => {
+        const combined = [...(Array.isArray(prev) ? prev : []), ...data.files];
+      
+        // remove duplicates based on URL
+        const uniqueMap = new Map();
+        for (const file of combined) {
+          uniqueMap.set(file.url, file); // last occurrence wins
+        }
+      
+        return Array.from(uniqueMap.values());
       });
-
-      const data = await res.json();
-      console.log("✅ Upload result:", data);
-
-      if (data.sessionId) {
-        setSessionId(data.sessionId);
-
-        const textRes = await fetch(`/api/Knowledgebase/uploadKnowledgebase?sessionId=${data.sessionId}`);
-        const textData = await textRes.json();
-
-        if (textData.text) {
-          setAgentPrompt((prevPrompt) => `${prevPrompt.trim()}\n\n${textData.text}`);
-        }
-
-
-        const newText = textData.text?.trim();
-        if (newText) {
-          setAgentPromptKB(newText);
-          setExtractedText(newText);
-        }
-
-      }
-
-      setAlert({ type: "success", message: "✅ Files uploaded and processed successfully.", visible: true });
-    } catch (err) {
-      console.error("❌ Upload error:", err);
-      setAlert({ type: "error", message: "❌ Failed to upload files.", visible: true });
+      
+      setAlert({ type: "success", message: "✅ Files uploaded successfully!", visible: true });
+    } else {
+      setAlert({ type: "error", message: "❌ Upload failed: " + data.message, visible: true });
     }
-    // Re-fetch uploaded URL after upload
-    const refetchPdfStatus = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}api/clients/ispdfupload?agentId=${agentId}`);
-        const data = await res.json();
-        if (res.ok && data.url) {
-          setExistingPdfUrl(data.url);
-          setPdfStatusMessage("✅ File uploaded successfully and available at:");
-        }
-      } catch (err) {
-        console.error("❌ Failed to refresh PDF status:", err);
-      }
-    };
-
-    await refetchPdfStatus();
-
   };
+
 
 
   const handleSaveCustomDescription = () => {
@@ -384,38 +364,36 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
     setAlert({ type: "success", message: "✅ Custom description saved! You can now save the number.", visible: true });
   };
 
-  const handleDeletePDF = (e) => {
-    e.stopPropagation();
-
+  const handleDeletePDF = async (file) => {
     setAlert({
       visible: true,
       type: "confirm",
-      message: "Are you sure you want to delete the uploaded File?",
+      message: `Are you sure you want to delete "${file.name}"?`,
       isConfirm: true,
       onConfirm: async () => {
         setAlert(prev => ({ ...prev, visible: false }));
 
         try {
-          const res = await fetch(`${BASE_URL}/api/clients/ispdfupload?agentId=${agentId}`, {
-            method: "DELETE",
-          });
+          const res = await fetch(
+            `${BASE_URL}/api/clients/ispdfupload?agentId=${agentId}&fileName=${encodeURIComponent(file.name)}`,
+            { method: "DELETE" }
+          );
 
           const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Failed to delete file");
 
-          if (!res.ok) throw new Error(data.message || "Failed to delete PDF");
+          setExistingPdfUrl(prev => (Array.isArray(prev) ? prev.filter(f => f.name !== file.name) : []));
 
-          setExistingPdfUrl(null);
-          setPdfStatusMessage("❌ No file uploaded for this agent. Please upload.");
+
           setAlert({
             type: "success",
             message: "✅ File deleted successfully.",
             visible: true,
           });
         } catch (err) {
-          console.error("❌ Error deleting PDF:", err);
           setAlert({
             type: "error",
-            message: "❌ Failed to delete PDF: " + err.message,
+            message: "❌ Failed to delete file: " + err.message,
             visible: true,
           });
         }
@@ -423,6 +401,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       onCancel: () => setAlert(prev => ({ ...prev, visible: false })),
     });
   };
+
 
 
   const handleSavePhoneTool = async (isDelete = false, toolKey = null) => {
@@ -1431,56 +1410,67 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           )}
 
 
-          {/* PDF Upload Section */}
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Upload File (for tools)
+              Upload Files (for tools)
             </label>
 
-            {existingPdfUrl ? (
-              <div className="flex items-center flex-wrap gap-2 mb-2 text-sm">
-                <span className=" text-gray-600">✅ File already uploaded:</span>
-                <a
-                  href={existingPdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline"
-                >
-                  📄 {existingPdfUrl.split("/").pop().replace(/^[^_]+_/, "")}
-                </a>
-
-                <button
-                  onClick={handleDeletePDF}
-                  className="text-red-600 hover:underline"
-                >
-                  Remove
-                </button>
+            {/* Uploaded files section */}
+            {existingPdfUrl && existingPdfUrl.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Uploaded Files:</p>
+                <ul className="space-y-2 text-sm">
+                  {existingPdfUrl.map((file, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        📄 {file.name || file.url.split("/").pop().replace(/^[^_]+_/, "")}
+                      </a>
+                      {file.uploadedAt && (
+                        <span className="text-gray-400 text-xs">
+                          ({new Date(file.uploadedAt).toLocaleString()})
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handleDeletePDF(file)}
+                        className="text-red-600 hover:underline ml-2"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-
-            ) : (
-              <>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setPdfFile(file);
-                    }
-                  }}
-                  className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
-                />
-
-                <button
-                  onClick={handleSavePDF}
-                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-4"
-                >
-                  Save File
-                </button>
-              </>
             )}
+
+            {/* Upload input always shown */}
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,image/*"
+              multiple
+              onChange={(e) => {
+                const files = e.target.files;
+                if (files?.length) {
+                  setSelectedFiles(Array.from(files));
+                }
+              }}
+              className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
+            />
+
+            <button
+              onClick={handleFileUpload}
+              className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
+            >
+              Upload Selected Files
+            </button>
           </div>
+
+
+
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Google Meet Link

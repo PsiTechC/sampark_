@@ -247,7 +247,6 @@ async function sendWhatsAppConfirmation(phoneNumber, email, name) {
   }
 }
 
-
 export default async function handler(req, res) {
   await CorsMiddleware(req, res);
 
@@ -351,13 +350,13 @@ export default async function handler(req, res) {
         }
 
         if (call.isMailSend === true && call.isUserCorrectedMailSend === true) {
-          console.log(`⏭️ Skipping call ${callId} — already handled`);
+          // console.log(`⏭️ Skipping call ${callId} — already handled`);
           continue;
         }
 
         const { appointmentDate, name, customerNumber, email, purpose, summary } = call;
-        console.log(`📞 Execution ID: ${callId}`);
-        console.log("📧 Data:", call);
+        // console.log(`📞 Execution ID: ${callId}`);
+        // console.log("📧 Data:", call);
 
         let timezone = call.timezone || "Asia/Kolkata";
 

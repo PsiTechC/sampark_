@@ -390,8 +390,8 @@ export default function CallLogs() {
         {/* Top Toolbar */}
         <div className="flex items-center flex-wrap gap-4 mb-6">
 
-          {/* Platform Dropdown */}
-          <div>
+
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
             <select
               value={platform}
@@ -399,9 +399,9 @@ export default function CallLogs() {
               className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700"
             >
               <option value="vapi">Vapi</option>
-              {/* <option value="bolna">Bolna</option> */}
+              <option value="bolna">Bolna</option>
             </select>
-          </div>
+          </div> */}
 
           {/* Agent Dropdown */}
           <div>
@@ -539,7 +539,7 @@ export default function CallLogs() {
 
                     <th className="border px-4 py-3 text-left">Conversation Logs</th>
 
-                    <th className="border px-4 py-3 text-left">Cost (in dollars)</th>
+                    <th className="border px-4 py-3 text-left">Cost (USD)</th>
                     {/* <th className="border px-4 py-3 text-left">Status</th> */}
                     <th className="border px-4 py-3 text-left">Summary</th>
                     <th className="border px-4 py-3 text-left">Customer Data</th>

@@ -77,6 +77,9 @@
 //             continue;
 //           }
 
+
+//           const callSystemPrompt = call.artifact?.messages?.find((msg) => msg.role === "system")?.message || "-";
+
 //           const callPayload = {
 //             id: callId || "-",
 //             assistantId: assistantId || "-",
@@ -84,6 +87,7 @@
 //             summary: call.summary || "-",
 //             systemPrompt: call.artifact?.messages?.find((msg) => msg.role === "system")?.message || "-",
 //           };
+
 
 //           const userPrompt = `
 //           You are an information extraction AI. From the following call object, extract these fields:
@@ -130,22 +134,41 @@
 
 //           If any field is missing, use "-" for that field.
 
-//           - Additionally, list any direct questions asked by the user that remained unanswered in the transcript.
-//   Respond with a second JSON object like:
+//           - Additionally, identify any questions the **human user** asked that were **not fully or clearly answered** by the assistant. You are detecting *unanswered or unresolved questions*.
 
-//   {
-//     "unansweredQuestions": [
-//       "Q1. What is the price of the flat?",
-//       "Q2. Can you send me a brochure?"
-//     ]
-//   }
+//              A question is considered **unanswered** if:
+//                - The assistant explicitly ignores the question.
+//                - The assistant replies with a vague or evasive response (e.g., "I'll get back to you", "Let me check", "I'm not sure").
+//                - The assistant misunderstands the question or provides an unrelated answer.
+//                - The assistant deflects (e.g., “please visit our website” without actually answering).
+//                - The assistant provides a response that does not actually resolve the user’s query (e.g., giving a partial or indirect answer to a specific question).
+//                - The assistant repeats back the question without progressing toward an answer.
+//                - The assistant misunderstands and answers a different question.
+//                - The assistant goes off-topic or delivers marketing fluff instead of answering the actual question.
 
-//   If there are no such questions, respond with:
-//   {
-//     "unansweredQuestions": []
-//   }
+//              A question is **not** considered unanswered if:
+//               - The assistant provides a reasonably complete and direct response to the question.
+//               - The question is rhetorical, sarcastic, or not meant to be answered.
+//               - The assistant gives clear steps or explanations that address the question's intent.
+//               - The user rephrases or answers their own question.
 
-// Return both JSON objects (the extracted call info and unansweredQuestions) one after the other, separated by a newline.
+//             ❗Be strict: do not include questions that were even *partially* addressed, unless it is clear the user did not get the information they were looking for.
+
+//              Respond with a second JSON object like:
+
+//              {
+//                "unansweredQuestions": [
+//                "Q1. What is the price of the flat?",
+//                "Q2. Can you send me a brochure?"
+//                ]
+//              }
+
+//             If there are no such questions, respond with:
+//             {
+//              "unansweredQuestions": []
+//             }
+
+//             Return both JSON objects (the extracted call info and unansweredQuestions) one after the other, separated by a newline.
 
 
 //           Respond ONLY in this strict JSON format:
@@ -173,7 +196,11 @@
 //               messages: [
 //                 {
 //                   role: "system",
-//                   content: "You extract structured data from call objects.",
+//                   content: "You are analyzing a call handled by an AI assistant. You will extract structured information and identify unanswered questions.",
+//                 },
+//                 {
+//                   role: "system",
+//                   content: `This was the instruction given to the AI assistant during the call (its internal system prompt):\n\n${callSystemPrompt}`,
 //                 },
 //                 {
 //                   role: "user",
@@ -191,7 +218,35 @@
 //                 .trim();
 //             }
 
-//             const result = JSON.parse(rawContent);
+//             const jsonMatches = [...rawContent.matchAll(/\{[\s\S]*?\}/g)];
+
+//             if (jsonMatches.length === 0) {
+//               console.error(`❌ No valid JSON objects found in OpenAI response for call ${callId}`);
+//               return res.status(500).json({ message: "Failed to parse OpenAI response" });
+//             }
+
+//             const resultJson = jsonMatches[0][0];
+//             const questionsJson = jsonMatches[1] ? jsonMatches[1][0] : null;
+
+
+//             let result, unansweredQuestions;
+
+//             try {
+//               result = JSON.parse(resultJson);
+//               result.email = result.email !== "-" ? cleanEmail(result.email) : "-";
+//             } catch (err) {
+//               console.error(`❌ Failed to parse structured result JSON for call ${callId}:`, err.message);
+//               return;
+//             }
+
+//             try {
+//               unansweredQuestions = JSON.parse(questionsJson)?.unansweredQuestions || [];
+//             } catch (err) {
+//               unansweredQuestions = [];
+//               console.warn(`⚠️ Failed to parse unansweredQuestions JSON for call ${callId}`);
+//             }
+
+
 //             result.email = result.email !== "-" ? cleanEmail(result.email) : "-";
 
 //             console.log("📤 Cleaned Extracted Info:", result);
@@ -220,6 +275,30 @@
 //               },
 //               { upsert: true }
 //             );
+//             if (unansweredQuestions.length > 0) {
+//               const userQuestionsCollection = db.collection("user_unanswered_ques");
+
+//               await userQuestionsCollection.updateOne(
+//                 { assistantId: result.assistantId },
+//                 {
+//                   $set: {
+//                     [`data.${result.id}`]: {
+//                       questions: unansweredQuestions,
+//                       updatedAt: new Date()
+//                     }
+//                   }
+//                 },
+//                 { upsert: true }
+//               );
+
+//               console.log(`❓ Saved ${unansweredQuestions.length} unanswered questions for call ${result.id}`);
+//               console.log("📦 Unanswered Questions Data:", {
+//                 assistantId: result.assistantId,
+//                 callId: result.id,
+//                 questions: unansweredQuestions
+//               });
+//             }
+
 //           } catch (err) {
 //             console.error(`❌ OpenAI error for call ${callId}:`, err.message);
 //           }
@@ -239,11 +318,11 @@
 // }
 
 
-
-
 import OpenAI from "openai";
 import { connectToDatabase } from "../../../lib/db";
 import CorsMiddleware from "../../../lib/cors-middleware";
+import { DateTime } from "luxon";
+
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -258,13 +337,85 @@ function cleanEmail(email) {
     .replace(/\s?at\s?/gi, '@');
 }
 
+async function getUserTimezoneFromTranscript(transcript, customerNumber) {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  const timezonePrompt = `
+From the following call transcript, extract the **user's CURRENT timezone** in IANA format (e.g., "Asia/Kolkata", "America/New_York", "Pacific/Honolulu").
+
+The user might:
+- Directly state the timezone (e.g., "I'm in IST", "Eastern Time", "PST").
+- Mention a **city** they live in (e.g., "I'm in Berlin", "based in Bangalore").
+- Say something ambiguous like "I was in Germany last week, but I live in India now." — in such cases, use the **location they currently live in or are speaking from**.
+- Be vague — if no timezone, country or city is clearly mentioned, default to "Asia/Kolkata".
+- If the transcript provides **no timezone, city, or country**, then infer timezone from the following phone number's country code:- Customer phone number: **${customerNumber}**
+
+
+DO NOT guess based on company or AI assistant location. Only use **what the user says**.
+
+Return only the result in this JSON format:
+{
+  "timezone": "IANA string"
+}
+
+Transcript:
+${transcript}
+`.trim();
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are a timezone detection assistant."
+        },
+        {
+          role: "user",
+          content: timezonePrompt
+        }
+      ],
+      temperature: 0,
+    });
+
+    const content = response.choices[0].message.content.trim();
+    console.log("🧾 OpenAI timezone response raw content:", content);
+
+
+    try {
+      // Try direct JSON parsing first
+      const directJson = JSON.parse(content);
+      if (directJson.timezone) return directJson.timezone;
+    } catch {}
+    
+    try {
+      // If wrapped in code block or extra text, extract JSON substring
+      const jsonMatch = content.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        const fallbackJson = JSON.parse(jsonMatch[0]);
+        return fallbackJson.timezone || "Asia/Kolkata";
+      }
+    } catch {}
+    
+    console.warn("⚠️ OpenAI response did not contain valid timezone JSON, defaulting.");
+    return "Asia/Kolkata";
+    
+
+  } catch (err) {
+    console.warn("⚠️ Failed to get timezone from transcript, defaulting to Asia/Kolkata");
+    return "Asia/Kolkata";
+  }
+
+}
+
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
 
   await CorsMiddleware(req, res);
-  const today = new Date().toISOString();
+
   try {
     const { db } = await connectToDatabase();
     const collection = db.collection("userdatafromcallwithsentiment");
@@ -308,6 +459,7 @@ export default async function handler(req, res) {
         for (const call of calls) {
           const callId = call.id;
 
+
           const userPhoneNumber = call.customer?.number || "-";
 
           if (call.status !== "ended") {
@@ -322,7 +474,14 @@ export default async function handler(req, res) {
 
 
           const callSystemPrompt = call.artifact?.messages?.find((msg) => msg.role === "system")?.message || "-";
-          
+
+          const userTimeZone = await getUserTimezoneFromTranscript(call.transcript || "");
+          const today = DateTime.now().setZone(userTimeZone).toISO();
+
+          console.log(`🌍 Timezone detected for call ${callId}: ${userTimeZone}`);
+          const readableToday = DateTime.fromISO(today).setZone(userTimeZone).toFormat("cccc, d LLLL yyyy, hh:mm a");
+          console.log(`🕒 Local 'today' for call ${callId}: ${readableToday} (${userTimeZone})`);
+
           const callPayload = {
             id: callId || "-",
             assistantId: assistantId || "-",
@@ -467,10 +626,10 @@ export default async function handler(req, res) {
               console.error(`❌ No valid JSON objects found in OpenAI response for call ${callId}`);
               return res.status(500).json({ message: "Failed to parse OpenAI response" });
             }
-            
+
             const resultJson = jsonMatches[0][0];
             const questionsJson = jsonMatches[1] ? jsonMatches[1][0] : null;
-            
+
 
             let result, unansweredQuestions;
 
@@ -481,14 +640,14 @@ export default async function handler(req, res) {
               console.error(`❌ Failed to parse structured result JSON for call ${callId}:`, err.message);
               return;
             }
-            
+
             try {
               unansweredQuestions = JSON.parse(questionsJson)?.unansweredQuestions || [];
             } catch (err) {
               unansweredQuestions = [];
               console.warn(`⚠️ Failed to parse unansweredQuestions JSON for call ${callId}`);
             }
-            
+
 
             result.email = result.email !== "-" ? cleanEmail(result.email) : "-";
 

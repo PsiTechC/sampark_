@@ -453,7 +453,7 @@ export default function Dashboard() {
             </div>
           )} */}
 
-          <h3 className="text-lg font-semibold text-gray-800 mt-6">Vapi Assistants</h3>
+          {/* <h3 className="text-lg font-semibold text-gray-800 mt-6">Vapi Assistants</h3> */}
           <div className="mt-4 space-y-2">
             {sortedVapiAssistants.length > 0 ? (
               sortedVapiAssistants.map((assistant) => (
