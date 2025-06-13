@@ -85,18 +85,27 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Extract all connected calendar token keys
-    const connectedCalendars = Object.keys(user).filter(
-      key =>
-        key.startsWith("googleAccessToken") &&
-        user[key] &&
-        typeof user[key] === "string"
-    );
-
-    return res.status(200).json({
-      isCalendarConnected: connectedCalendars.length > 0,
-      connectedCalendars, // e.g. ['googleAccessToken', 'googleAccessToken1']
+    const connectedCalendars = Object.keys(user)
+    .filter((key) => key.startsWith("googleAccessToken") && typeof user[key] === "string" && user[key])
+    .map((accessKey) => {
+      const index = accessKey === "googleAccessToken" ? "" : accessKey.replace("googleAccessToken", "");
+      const refreshKey = `googleRefreshToken${index}`;
+      const nameKey = index === "" ? "calendarMeta" : `calendarMeta${index}`;
+  
+      return {
+        accessField: accessKey,
+        refreshField: refreshKey,
+        calendarName: user[nameKey] || `Calendar ${index || 1}`,
+      };
     });
+  
+
+
+  return res.status(200).json({
+    isCalendarConnected: connectedCalendars.length > 0,
+    connectedCalendars, 
+  });
+  
   } catch (error) {
     console.error("❌ Error checking calendar tokens:", error);
     return res.status(500).json({ message: "Internal Server Error" });

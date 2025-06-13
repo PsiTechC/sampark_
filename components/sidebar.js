@@ -8,6 +8,39 @@ const Sidebar = ({ clientId }) => {
   const [storedClientId, setStoredClientId] = useState(clientId || null);
 
 
+
+  useEffect(() => {
+    // Check auth by calling your existing backend
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/verify-token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        const data = await res.json();
+
+        if (!data.isVerified) {
+          router.push("/"); // redirect to login
+        }
+      } catch (err) {
+        console.error("Error verifying token", err);
+        router.push("/"); // fallback redirect
+      }
+    };
+
+    checkAuth();
+
+    // Optional: also restore localStorage-based clientId
+    const clientIdFromStorage = localStorage.getItem("clientId");
+    if (clientIdFromStorage) {
+      setStoredClientId(clientIdFromStorage);
+    }
+  }, []);
+
+
   useEffect(() => {
     if (!storedClientId) {
       const clientIdFromStorage = localStorage.getItem("clientId");

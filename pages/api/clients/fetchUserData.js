@@ -386,8 +386,8 @@ ${transcript}
       // Try direct JSON parsing first
       const directJson = JSON.parse(content);
       if (directJson.timezone) return directJson.timezone;
-    } catch {}
-    
+    } catch { }
+
     try {
       // If wrapped in code block or extra text, extract JSON substring
       const jsonMatch = content.match(/\{[\s\S]*?\}/);
@@ -395,11 +395,11 @@ ${transcript}
         const fallbackJson = JSON.parse(jsonMatch[0]);
         return fallbackJson.timezone || "Asia/Kolkata";
       }
-    } catch {}
-    
+    } catch { }
+
     console.warn("⚠️ OpenAI response did not contain valid timezone JSON, defaulting.");
     return "Asia/Kolkata";
-    
+
 
   } catch (err) {
     console.warn("⚠️ Failed to get timezone from transcript, defaulting to Asia/Kolkata");
@@ -528,6 +528,21 @@ export default async function handler(req, res) {
           - If the year is in the future (e.g., 2026), preserve it as is.
           
           - purpose: the purpose of the meeting or call, if mentioned (e.g. "site visit", "demo discussion")
+            If the conversation involves property, real estate, apartments, houses, or similar interests — and the user mentions a budget, include that in the purpose.
+            Examples: "property interest with budget 1cr", "real estate inquiry, budget $500K", "interested in flat, budget range 80L–1cr"
+
+            ✔ Include budgets if:
+             The user directly states a budget (e.g., "my budget is 1.5cr", "I'm looking under $700,000")
+             The AI suggests a budget range and the user confirms (e.g., AI: "Is your budget 1–2cr?" → User: "Yes, that’s right")
+             The user says something like "my maximum is 90L", or "can't go beyond 70 lakhs"
+             ⚠️ Only include user-confirmed budgets. Do not include ranges suggested by the AI unless the user clearly agrees.
+
+            If the user says the currency (e.g., INR, USD, rupees, lakhs, crores, dollars), include it. If not, just include the number (e.g., "budget 1cr").
+
+            ❌ Do not include budget if:
+             It was only suggested by the AI and never agreed to by the user
+             The user says they’re unsure or gives vague replies like “I’ll decide later” or “not sure”
+
           - sentiment: classify sentiment based on the conversation and the assistant's system prompt. Use:
             - positive
             - negative           

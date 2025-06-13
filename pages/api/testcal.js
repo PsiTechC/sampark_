@@ -109,6 +109,13 @@ export default async function handler(req, res) {
 
     // Read and verify JWT from httpOnly cookie
     const cookies = cookie.parse(req.headers.cookie || '');
+    let calendarName = cookies.pendingCalendarName;
+
+if (!calendarName) {
+  const nameKey = index === 0 ? "calendarMeta" : `calendarMeta${index}`;
+  calendarName = userDoc[nameKey] || `Calendar ${index + 1}`;
+}
+
     const token = cookies.token;
 
     if (!token) {
@@ -144,15 +151,19 @@ export default async function handler(req, res) {
     const accessTokenKey = index === 0 ? "googleAccessToken" : `googleAccessToken${index}`;
     const refreshTokenKey = index === 0 ? "googleRefreshToken" : `googleRefreshToken${index}`;
 
+    const calendarMetaKey = index === 0 ? "calendarMeta" : `calendarMeta${index}`;
+
     const updateRes = await db.collection("users").updateOne(
       { email },
       {
         $set: {
           [accessTokenKey]: access_token,
           [refreshTokenKey]: refresh_token,
+          [calendarMetaKey]: calendarName, // store the calendar name
         },
       }
     );
+    
     
     if (updateRes.matchedCount === 0) {
       return res.redirect(302, `${BASE_URL}/agents/ConnectCalender?error=user_not_found`);
@@ -166,3 +177,4 @@ export default async function handler(req, res) {
     return res.redirect(302, `${BASE_URL}/agents/ConnectCalender?error=token_exchange_failed`);
   }
 }
+

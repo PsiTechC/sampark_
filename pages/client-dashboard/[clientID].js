@@ -574,7 +574,7 @@ export default function Dashboard() {
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">No Vapi assistants found.</p>
+              <p className="text-gray-500">No assistants found.</p>
             )}
           </div>
 
