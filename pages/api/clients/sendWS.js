@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       const pdfDocs = await s3pdfCollection.find({ agentId: assistantId }).toArray();
 
       if (!pdfDocs.length) {
-        console.warn(`❌ No brochure PDFs for assistantId ${assistantId}`);
+        // console.warn(`❌ No brochure PDFs for assistantId ${assistantId}`);
         continue;
       }
       

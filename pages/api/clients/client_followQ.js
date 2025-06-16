@@ -191,7 +191,7 @@ export default async function handler(req, res) {
       for (const internalId of internalIds) {
         const entry = data[internalId];
         if (entry.isFollowUpMailSend === true) {
-          console.log(`⏭️ Skipping ${internalId} — follow-up already sent.`);
+          // console.log(`⏭️ Skipping ${internalId} — follow-up already sent.`);
           continue;
         }
 
