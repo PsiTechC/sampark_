@@ -3,7 +3,7 @@ import CorsMiddleware from "../../../lib/cors-middleware";
 import { connectToDatabase } from "../../../lib/db";
 
 const API_KEY_VAPI = process.env.NEXT_PUBLIC_API_TOKEN_VAPI;
-const PHONE_NUMBER_ID = "4519aa32-fcb2-4bf6-9200-53a6959258e1"; // Vapi phoneNumberId
+const PHONE_NUMBER_ID = "4519aa32-fcb2-4bf6-9200-53a6959258e1"; 
 
 // ➕ Utility: Get current time in given timezone
 function getCurrentTimeInZone(timezone) {

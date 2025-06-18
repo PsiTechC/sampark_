@@ -1,0 +1,133 @@
+
+
+===== Uploaded file content (6/18/2025, 1:22:25 PM) =====
+
+
+
+SCOPE OF WORK FOR HIRING OF SERVICES FOR DESIGN AND 
+DEPLOYMENT OF A SOLUTION FOR POWER BI INCLUDING  
+DEVELOPMENT OF MAP BASED REPORTS  
+ 
+1. The Weapons & Electronics Systems Engineering Establishment (WESEE), 
+under Ministry of Defence, Government of India, intends to obtain Hiring of services 
+for Design and Deployment of a solution for Power BI including development of map 
+based reports. 
+ 
+Introduction 
+ 
+2. Indian Navy is in the process of setting up an interactive and user-friendly map-
+based  dashboard  in  Power  BI  that  provides  insights  into  key  business  metrics, 
+enabling data-driven decision-making. 
+ 
+3. The scope of work will consist of comprehensive plan for the Hiring of services 
+for Design and Deployment of a solution for Power BI including development of map 
+based reports, specifically focused on creating a map-based dashboard and related 
+reports. The goal is to provide organisational needs that meets the actionable insights 
+through visual data representation in following requirement:- 
+ 
+(a) Deployment of SQL Server / Enterprise level Power BI in on premise 
+cloud with offline map integration. 
+(b) Web based 
+(c) Dashboard  development  as  per  user  requirement (integrated  with 
+multiple database/data sources) 
+(d) Source code and all configuration file will be handed over to IN. 
+ 
+4. Developed  solution  would  be  (able  to)  and  used  for analysing  data  being 
+generated from various platforms and sources in an on premise private cloud. Some 
+features to be developed are as follows: - 
+ 
+(a) Data Visualization.    Creating  intuitive  and  interactive  visualizations. 
+This is crucial for naval operations where complex data sets from sensors (e.g., 
+sonar, radar etc.) need to be interpreted quickly and effectively. 
+(b) Real-Time Analytics. With sensor data being collected 
+continuously, tool  to provide  real-time  analytics  and  dashboards.  This  allows 
+naval   operators   to   make   timely   decisions   based   on   the   most   current 
+information. 
+(c) Integration Capabilities. Integrate    with    various    data    sources, 
+including databases, Excel files, and cloud services. This is particularly useful 
+for  combining  historical  data  with  real-time  sensor  data  for  comprehensive 
+analysis. 
+(d) Customizable Reports. Create tailored reports that focus on specific 
+metrics    relevant    to    naval    operations, such    as    vessel   performance, 
+environmental  conditions,  or  mission  readiness. (to  be  developed  in  dash 
+board) 
+
+(e) Enhanced Collaboration. Sharing of insights and reports across teams 
+while maintaining control over data access in a private cloud environment. 
+(f) Predictive Analytics. Should support advanced analytics, enabling 
+predictive modeling to forecast trends or mission outcomes based on historical 
+data. 
+(g) User-Friendly Interface. The  tool's  ease  of  use  allows  personnel, 
+regardless  of  technical  expertise,  to engage with  the  data, facilitating  a  data-
+driven culture within the naval organization. 
+(h) Scalability. As  data  volume  grows, tool  should scale  accordingly, 
+accommodating additional  sensor  data  and  more  complex  analyses  without 
+compromising performance. 
+5. Further,  it  is  imperative  that  the selected software and design tool shouldn’t 
+have any requirement to be connected to internet for any update or feature.  
+Development Timelines 
+ 
+6. Development schedule with respect to date of placement of work order (D) are 
+as follows - 
+Phase 
+Timeline 
+(In Months) 
+Work 
+Phase 1 D + 1 
+Deployment   of   tool (Enterprise 
+version Power BI) in on premise air 
+gapped  network with offline map 
+integration.  
+Phase 2 
+03 months on 
+completion of Phase I 
+Dashboards development (05) 
+Phase 3 
+02 months on 
+completion of Phase II 
+Report   generation,   testing   and 
+configuration 
+ 
+Payment Stages.  
+7. Payment Stages with respect to date of placement of supply order (D) are as 
+follows – 
+Phase 
+Work 
+Timeline 
+(In Months) 
+Payment 
+Phase I 
+Deployment of tool 
+(Enterprise   version   Power 
+B2) on premise cloud  with  
+offline map integration 
+D + 01 
+40% 
+Phase II 
+Dashboards development 
+(05) 
+03 months on 
+completion of 
+Phase I 
+40% 
+Phase III 
+Report   generation,   testing 
+and configuration 
+02 months on 
+completion of 
+Phase II 
+20% 
+
+ 
+8. Payment Mode.      It will be mandatory for the Service Providerto indicate their 
+bank account numbers and other relevant e-payment details so that payments could 
+be  made  through  ECS/NEFT  mechanism  instead  of  payment  through  cheques, 
+wherever feasible. 
+ 
+9. Payment would be made by CDA (Navy/Coast Guard). The Paying Authority 
+Address is: -  
+ 
+The CDA (Navy/Coast Guard),  
+West Block-V RK Puram,  
+New Delhi-110066 
+ 

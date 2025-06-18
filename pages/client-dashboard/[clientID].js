@@ -11,8 +11,7 @@ import ConnectCalender from "../agents/ConnectCalender";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faCopy, faArrowDownAZ, faArrowUpAZ, faChevronDown, faPen } from "@fortawesome/free-solid-svg-icons";
 import Alert from "../../components/ui/Alerts";
-
-
+import Loader from "../../components/ui/Loader";
 
 const convertVapiAssistantToAgent = (assistant) => ({
   id: assistant.id,

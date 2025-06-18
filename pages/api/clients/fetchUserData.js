@@ -620,7 +620,10 @@ export default async function handler(req, res) {
            - "Give me a call tomorrow at 3 PM"
         
            Use current reference time: **${today}**
-           If the user says "later", "after lunch", or similar vague phrases, return "-"
+           IMPORTANT:-
+           - If the user says "later", "after lunch", or similar vague phrases, return "-".
+           - If the user mentions a time or date that is in the **past compared to today (${today})**, then also return: 
+             "callTime": "-"
                
           - timezone: the IANA time zone string if the user mentions a timezone like Pacific, Mountain, Central, Indian, or any other common reference. Also infer the timezone if a country or city is mentioned. Examples:
             - PST or Pacific → "America/Los_Angeles"
@@ -760,6 +763,15 @@ export default async function handler(req, res) {
             try {
               result = JSON.parse(resultJson);
               result.email = result.email !== "-" ? cleanEmail(result.email) : "-";
+              if (result.callTime && result.callTime !== "-") {
+                const userNow = DateTime.fromISO(today).setZone(result.timezone || "Asia/Kolkata");
+                const extractedCallTime = DateTime.fromISO(result.callTime).setZone(result.timezone || "Asia/Kolkata");
+              
+                if (!extractedCallTime.isValid || extractedCallTime < userNow) {
+                  console.warn(`⚠️ Overriding callTime to "-" as it's in the past: ${result.callTime} < ${userNow.toISO()}`);
+                  result.callTime = "-";
+                }
+              }
             } catch (err) {
               console.error(`❌ Failed to parse structured result JSON for call ${callId}:`, err.message);
               return;

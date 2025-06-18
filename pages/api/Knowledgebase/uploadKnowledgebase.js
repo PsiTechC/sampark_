@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
 const formidable = require("formidable");
-import { processUploadedFilesAndSaveText } from "@/lib/extractTextFromFile";
+import { processUploadedFilesAndSaveText } from "@/lib/extractTextFromFile"; // Ensure this is your text extraction function
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false,  // Disable the default body parser to handle the file upload manually
   },
 };
 
@@ -30,6 +30,7 @@ async function handleFileUpload(req, res) {
     multiples: true,
   });
 
+  // Parse the form data asynchronously
   form.parse(req, async (err, fields, filesObj) => {
     if (err) {
       console.error("Form parsing error:", err);
@@ -44,17 +45,19 @@ async function handleFileUpload(req, res) {
         return res.status(400).json({ error: "No valid files uploaded." });
       }
 
+      // Process the uploaded files
       const results = await processUploadedFilesAndSaveText(filteredFiles);
 
+      // Ensure the response is sent after text extraction
       res.status(200).json({
         message: "✅ Files processed successfully.",
         sessionId: results.sessionId,
         extractedFilePath: results.extractedFile,
-        preview: results.preview,
+        preview: results.preview,  // Assuming preview is the text extracted
       });
     } catch (error) {
-      console.error("❌ Error processing uploaded files:", error);
-      res.status(500).json({ error: "Failed to extract and save file text." });
+      console.error("Error during file processing:", error);
+      return res.status(500).json({ error: "Failed to extract and save file text." });
     }
   });
 }
@@ -75,9 +78,9 @@ async function handleFetchExtractedText(req, res) {
 
   try {
     const text = fs.readFileSync(extractPath, "utf-8");
-    res.status(200).json({ sessionId, text });
+    return res.status(200).json({ sessionId, text });
   } catch (err) {
     console.error("❌ Failed to read extracted file:", err);
-    res.status(500).json({ error: "Could not read extracted file" });
+    return res.status(500).json({ error: "Could not read extracted file" });
   }
 }
