@@ -30,14 +30,84 @@ const tabs = [
 ];
 
 
-
-const bolnaVoices = ["Monika Sogam", "Vikram", "Roshni", "Anjali", "Sara", "Sanjay", "Vijay"];
 const vapiVoices = [
-  "burt-11labs", "marissa-11labs", "andrea-11labs", "sarah-11labs",
-  "phillip-11labs", "steve-11labs", "joseph-11labs", "myra-11labs",
-  "paula-11labs", "ryan-11labs", "drew-11labs", "paul-11labs",
-  "mrb-11labs", "matilda-11labs", "mark-11labs"
+  {
+    id: "andrea-11labs",
+    name: "Andrea",
+    description: "Warm, professional female voice with clear articulation"
+  },
+  {
+    id: "burt-11labs",
+    name: "Burt",
+    description: "Deep, authoritative male voice with rich tones"
+  },
+  {
+    id: "drew-11labs",
+    name: "Drew",
+    description: "Friendly, conversational male voice with natural delivery"
+  },
+  {
+    id: "joseph-11labs",
+    name: "Joseph",
+    description: "Smooth, confident male voice with professional tone"
+  },
+  {
+    id: "mark-11labs",
+    name: "Mark",
+    description: "Clear, articulate male voice suitable for narration"
+  },
+  {
+    id: "marissa-11labs",
+    name: "Marissa",
+    description: "Bright, engaging female voice with energetic delivery"
+  },
+  {
+    id: "matilda-11labs",
+    name: "Matilda",
+    description: "Warm, nurturing female voice with encouraging tone"
+  },
+  {
+    id: "mrb-11labs",
+    name: "MrB",
+    description: "Dynamic, expressive male voice with character"
+  },
+  {
+    id: "myra-11labs",
+    name: "Myra",
+    description: "Elegant, sophisticated female voice with refined delivery"
+  },
+  {
+    id: "paul-11labs",
+    name: "Paul",
+    description: "Versatile, natural male voice perfect for various content"
+  },
+  {
+    id: "paula-11labs",
+    name: "Paula",
+    description: "Friendly, approachable female voice with warm personality"
+  },
+  {
+    id: "phillip-11labs",
+    name: "Phillip",
+    description: "Distinguished, mature male voice with authoritative presence"
+  },
+  {
+    id: "ryan-11labs",
+    name: "Ryan",
+    description: "Youthful, energetic male voice with modern appeal"
+  },
+  {
+    id: "sarah-11labs",
+    name: "Sarah",
+    description: "Clear, professional female voice with neutral accent"
+  },
+  {
+    id: "steve-11labs",
+    name: "Steve",
+    description: "Reliable, trustworthy male voice with steady delivery"
+  }
 ];
+
 
 
 
@@ -127,32 +197,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
 
 
-  const handleSavePDF = async () => {
-    try {
-      if (pdfFile && agentId) {
-        const formData = new FormData();
-        formData.append("pdf", pdfFile);
-        // ⚡ No need to append agentId into formData anymore
-
-        const res = await fetch(`${BASE_URL}/api/clients/pdfupload?agentId=${agentId}`, {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to upload File");
-
-        setAlert({ type: "success", message: "✅ File uploaded successfully!", visible: true });
-
-        setPdfFile(null);
-      } else {
-        console.log("No File selected or agentId missing...");
-      }
-    } catch (err) {
-      console.error("❌ Error uploading File:", err);
-      setAlert({ type: "error", message: "❌ Error uploading File: " + err.message, visible: true });
-    }
-  };
 
   const fetchExistingPdf = async () => {
     try {
@@ -177,7 +221,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       fetchExistingPdf();
     }
   }, [agentId]);
-  
+
 
 
   const handleSaveAgent = async () => {
@@ -336,16 +380,16 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
     if (res.ok) {
       setExistingPdfUrl(prev => {
         const combined = [...(Array.isArray(prev) ? prev : []), ...data.files];
-      
+
         // remove duplicates based on URL
         const uniqueMap = new Map();
         for (const file of combined) {
           uniqueMap.set(file.url, file); // last occurrence wins
         }
-      
+
         return Array.from(uniqueMap.values());
       });
-      
+
       setAlert({ type: "success", message: "✅ Files uploaded successfully!", visible: true });
     } else {
       setAlert({ type: "error", message: "❌ Upload failed: " + data.message, visible: true });
@@ -1272,10 +1316,20 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           >
             <option value="">Select Voice</option>
             {(isVapiAssistant ? vapiVoices : bolnaVoices).map((v) => {
-              const display = isVapiAssistant ? v.split("-")[0] : v;
-              return (
-                <option key={v} value={v}>{display.charAt(0).toUpperCase() + display.slice(1)}</option>
-              );
+              if (isVapiAssistant) {
+                return (
+                  <option key={v.id} value={v.id}>
+                    {v.name} - {v.description}
+                  </option>
+                );
+              } else {
+                const display = v;
+                return (
+                  <option key={v} value={v}>
+                    {display.charAt(0).toUpperCase() + display.slice(1)}
+                  </option>
+                );
+              }
             })}
           </select>
 

@@ -1,6 +1,8 @@
 // import OpenAI from "openai";
 // import { connectToDatabase } from "../../../lib/db";
 // import CorsMiddleware from "../../../lib/cors-middleware";
+// import { DateTime } from "luxon";
+
 
 // const openai = new OpenAI({
 //   apiKey: process.env.OPENAI_API_KEY,
@@ -15,13 +17,85 @@
 //     .replace(/\s?at\s?/gi, '@');
 // }
 
+// async function getUserTimezoneFromTranscript(transcript, customerNumber) {
+//   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+//   const timezonePrompt = `
+// From the following call transcript, extract the **user's CURRENT timezone** in IANA format (e.g., "Asia/Kolkata", "America/New_York", "Pacific/Honolulu").
+
+// The user might:
+// - Directly state the timezone (e.g., "I'm in IST", "Eastern Time", "PST").
+// - Mention a **city** they live in (e.g., "I'm in Berlin", "based in Bangalore").
+// - Say something ambiguous like "I was in Germany last week, but I live in India now." — in such cases, use the **location they currently live in or are speaking from**.
+// - Be vague — if no timezone, country or city is clearly mentioned, default to "Asia/Kolkata".
+// - If the transcript provides **no timezone, city, or country**, then infer timezone from the following phone number's country code:- Customer phone number: **${customerNumber}**
+
+
+// DO NOT guess based on company or AI assistant location. Only use **what the user says**.
+
+// Return only the result in this JSON format:
+// {
+//   "timezone": "IANA string"
+// }
+
+// Transcript:
+// ${transcript}
+// `.trim();
+
+//   try {
+//     const response = await openai.chat.completions.create({
+//       model: "gpt-4o",
+//       messages: [
+//         {
+//           role: "system",
+//           content: "You are a timezone detection assistant."
+//         },
+//         {
+//           role: "user",
+//           content: timezonePrompt
+//         }
+//       ],
+//       temperature: 0,
+//     });
+
+//     const content = response.choices[0].message.content.trim();
+//     console.log("🧾 OpenAI timezone response raw content:", content);
+
+
+//     try {
+//       // Try direct JSON parsing first
+//       const directJson = JSON.parse(content);
+//       if (directJson.timezone) return directJson.timezone;
+//     } catch { }
+
+//     try {
+//       // If wrapped in code block or extra text, extract JSON substring
+//       const jsonMatch = content.match(/\{[\s\S]*?\}/);
+//       if (jsonMatch) {
+//         const fallbackJson = JSON.parse(jsonMatch[0]);
+//         return fallbackJson.timezone || "Asia/Kolkata";
+//       }
+//     } catch { }
+
+//     console.warn("⚠️ OpenAI response did not contain valid timezone JSON, defaulting.");
+//     return "Asia/Kolkata";
+
+
+//   } catch (err) {
+//     console.warn("⚠️ Failed to get timezone from transcript, defaulting to Asia/Kolkata");
+//     return "Asia/Kolkata";
+//   }
+
+// }
+
+
 // export default async function handler(req, res) {
 //   if (req.method !== "GET") {
 //     return res.status(405).json({ message: "Method Not Allowed" });
 //   }
 
 //   await CorsMiddleware(req, res);
-//   const today = new Date().toISOString();
+
 //   try {
 //     const { db } = await connectToDatabase();
 //     const collection = db.collection("userdatafromcallwithsentiment");
@@ -65,6 +139,7 @@
 //         for (const call of calls) {
 //           const callId = call.id;
 
+
 //           const userPhoneNumber = call.customer?.number || "-";
 
 //           if (call.status !== "ended") {
@@ -80,6 +155,13 @@
 
 //           const callSystemPrompt = call.artifact?.messages?.find((msg) => msg.role === "system")?.message || "-";
 
+//           const userTimeZone = await getUserTimezoneFromTranscript(call.transcript || "");
+//           const today = DateTime.now().setZone(userTimeZone).toISO();
+
+//           console.log(`🌍 Timezone detected for call ${callId}: ${userTimeZone}`);
+//           const readableToday = DateTime.fromISO(today).setZone(userTimeZone).toFormat("cccc, d LLLL yyyy, hh:mm a");
+//           console.log(`🕒 Local 'today' for call ${callId}: ${readableToday} (${userTimeZone})`);
+
 //           const callPayload = {
 //             id: callId || "-",
 //             assistantId: assistantId || "-",
@@ -91,7 +173,7 @@
 
 //           const userPrompt = `
 //           You are an information extraction AI. From the following call object, extract these fields:
-
+          
 //           - assistantId: the assistant ID
 //           - id: the call ID
 //           - name: the user's full name (just the name of the customer NOT THE AI ASSISTANT NAME)
@@ -102,7 +184,7 @@
 //                - "Call me in 30 minutes"
 //                - "Book an appointment after 1 hour"
 //                - "Connect me tomorrow at 3 PM"
-
+        
 //               Then calculate the exact datetime from the current moment: **${today}** (ISO format). Assume:
 //                - "30 minutes from now" → current time + 30 minutes
 //                - "after 1 hour" → current time + 1 hour
@@ -111,7 +193,7 @@
 
 //                - If the user explicitly mentions a **date and time in the past** (compared to today's datetime of **${today}**), do **not** return that past value. Instead, set:
 //                "appointmentDate": "user asked for past date"
-
+               
 //           - timezone: the IANA time zone string if the user mentions a timezone like Pacific, Mountain, Central, Indian, or any other common reference. Also infer the timezone if a country or city is mentioned. Examples:
 //             - PST or Pacific → "America/Los_Angeles"
 //             - IST or Indian → "Asia/Kolkata"
@@ -119,19 +201,34 @@
 //             - CET or Central European → "Europe/Berlin"
 //             - If instead the user mentions a country (e.g., India, USA, Germany) or a city (e.g., New York, Berlin, Mumbai), determine the corresponding timezone and return the appropriate IANA name as above.
 //             If no timezone is mentioned, return "Asia/Kolkata".
-
+          
 //           Today's date is: ${today}
 //           - If no year is mentioned, assume the upcoming date in the current year (${today.split("-")[0]}).
 //           - If a past year is mentioned (e.g., 2023), correct it to the current year.
 //           - If the year is in the future (e.g., 2026), preserve it as is.
-
+          
 //           - purpose: the purpose of the meeting or call, if mentioned (e.g. "site visit", "demo discussion")
+//             If the conversation involves property, real estate, apartments, houses, or similar interests — and the user mentions a budget, include that in the purpose.
+//             Examples: "property interest with budget 1cr", "real estate inquiry, budget $500K", "interested in flat, budget range 80L–1cr"
+
+//             ✔ Include budgets if:
+//              The user directly states a budget (e.g., "my budget is 1.5cr", "I'm looking under $700,000")
+//              The AI suggests a budget range and the user confirms (e.g., AI: "Is your budget 1–2cr?" → User: "Yes, that’s right")
+//              The user says something like "my maximum is 90L", or "can't go beyond 70 lakhs"
+//              ⚠️ Only include user-confirmed budgets. Do not include ranges suggested by the AI unless the user clearly agrees.
+
+//             If the user says the currency (e.g., INR, USD, rupees, lakhs, crores, dollars), include it. If not, just include the number (e.g., "budget 1cr").
+
+//             ❌ Do not include budget if:
+//              It was only suggested by the AI and never agreed to by the user
+//              The user says they’re unsure or gives vague replies like “I’ll decide later” or “not sure”
+
 //           - sentiment: classify sentiment based on the conversation and the assistant's system prompt. Use:
 //             - positive
 //             - negative           
 //             - neutral 
 //             - no_response (if the transcription is empty or lacks meaningful content)
-
+          
 //           If any field is missing, use "-" for that field.
 
 //           - Additionally, identify any questions the **human user** asked that were **not fully or clearly answered** by the assistant. You are detecting *unanswered or unresolved questions*.
@@ -151,11 +248,11 @@
 //               - The question is rhetorical, sarcastic, or not meant to be answered.
 //               - The assistant gives clear steps or explanations that address the question's intent.
 //               - The user rephrases or answers their own question.
-
+  
 //             ❗Be strict: do not include questions that were even *partially* addressed, unless it is clear the user did not get the information they were looking for.
 
 //              Respond with a second JSON object like:
-
+ 
 //              {
 //                "unansweredQuestions": [
 //                "Q1. What is the price of the flat?",
@@ -170,7 +267,7 @@
 
 //             Return both JSON objects (the extracted call info and unansweredQuestions) one after the other, separated by a newline.
 
-
+          
 //           Respond ONLY in this strict JSON format:
 //           {
 //             "assistantId": "<assistant_id_or_->",
@@ -183,7 +280,7 @@
 //             "purpose": "<purpose_or_->",
 //             "sentiment": "positive" | "negative" | "neutral" | "no_response"
 //           }
-
+          
 
 //           Call Object:
 //           ${JSON.stringify(callPayload, null, 2)}
@@ -499,20 +596,31 @@ export default async function handler(req, res) {
           - name: the user's full name (just the name of the customer NOT THE AI ASSISTANT NAME)
           - email: a valid email address. If the user spells it (e.g., "a dot b at g m a i l dot com"), convert it into a proper format like "ab@gmail.com". Users may also say their email in parts, such as: "My email address is s a n k e t double k, a p, double o, r 0 7 at Gmail dot com." Make sure to correctly interpret "double" as repeating the following letter (e.g., "double k" → "kk"). Do NOT return email addresses with dots between each character (e.g., "a.b.c.d").
           - phone: convert spoken formats like "nine one triple eight" or "nine one three one double eight" into digits, like "9188" or "913188". Remove spaces, and return only digits. Do NOT return masked values like "9131XXX".
-          - appointmentDate: if the user mentions a date and time for a meeting or appointment, return it in full ISO 8601 format, e.g., "2025-07-05T15:00:00+05:30".
-               If the user says things like:
-               - "Call me in 30 minutes"
-               - "Book an appointment after 1 hour"
-               - "Connect me tomorrow at 3 PM"
-        
-              Then calculate the exact datetime from the current moment: **${today}** (ISO format). Assume:
-               - "30 minutes from now" → current time + 30 minutes
-               - "after 1 hour" → current time + 1 hour
-               - "tomorrow at 3 PM" → next day at 15:00 local time
-               - If only a vague future intent is mentioned like "later" or "after lunch", return "-"
 
-               - If the user explicitly mentions a **date and time in the past** (compared to today's datetime of **${today}**), do **not** return that past value. Instead, set:
-               "appointmentDate": "user asked for past date"
+          - appointmentDate: if the user **explicitly mentions a meeting or appointment**, extract the date and time in ISO 8601 format (e.g., "2025-07-05T15:00:00+05:30").
+
+           Examples that qualify:
+           - "Book an appointment after 1 hour"
+           - "Schedule a demo at 3 PM tomorrow"
+           - "Can we meet on July 5th at 2 PM?"
+        
+           Do not extract appointmentDate for call-back phrases like "call me", "ping me", "give me a ring" etc.
+        
+          If the user mentions a date/time in the past compared to: **${today}**, then return:
+          "appointmentDate": "user asked for past date"
+        
+          If no such future meeting/appointment is clearly mentioned, return "-"
+        
+        - callTime: if the user says **call me**, **ping me**, or anything suggesting a callback rather than a formal appointment, return the inferred datetime in ISO 8601.
+        
+           Examples that qualify:
+           - "Call me in 30 minutes"
+           - "Call me in 10 minutes"
+           - "Ping me after 1 hour"
+           - "Give me a call tomorrow at 3 PM"
+        
+           Use current reference time: **${today}**
+           If the user says "later", "after lunch", or similar vague phrases, return "-"
                
           - timezone: the IANA time zone string if the user mentions a timezone like Pacific, Mountain, Central, Indian, or any other common reference. Also infer the timezone if a country or city is mentioned. Examples:
             - PST or Pacific → "America/Los_Angeles"
@@ -596,6 +704,7 @@ export default async function handler(req, res) {
             "email": "<email_or_->",
             "phone": "<phone_or_->",
             "appointmentDate": "<date_and_time_or_->",
+            "callTime": "<date_and_time_or_->",
             "timezone": "<IANA_zone_or_->",
             "purpose": "<purpose_or_->",
             "sentiment": "positive" | "negative" | "neutral" | "no_response"
@@ -680,6 +789,7 @@ export default async function handler(req, res) {
                     email: result.email,
                     phone: result.phone,
                     appointmentDate: result.appointmentDate,
+                    callTime: result.callTime || "-",
                     timezone: result.timezone || "-",
                     purpose: result.purpose,
                     sentiment: result.sentiment,
