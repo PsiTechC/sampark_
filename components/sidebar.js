@@ -1,8 +1,8 @@
 // C:/botGIT/botGIT-main/components/sidebar.js
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FaUserCircle, FaUserPlus, FaHashtag, FaCalendar, FaAd, FaSignOutAlt } from "react-icons/fa";
-import { FaSquarePhone, FaChartSimple,  } from "react-icons/fa6";
+import { FaUserCircle, FaUserPlus, FaHashtag, FaCalendar, FaAd, FaSignOutAlt , } from "react-icons/fa";
+import { FaSquarePhone, FaChartSimple, FaChartBar  } from "react-icons/fa6";
 import { useRouter } from "next/router";
 const Sidebar = ({ clientId }) => {
   const [storedClientId, setStoredClientId] = useState(clientId || null);
@@ -112,8 +112,9 @@ const Sidebar = ({ clientId }) => {
             <Link
               href="/agents/analytics"
               className="flex items-center space-x-3"
-            >
-              <FaAd className="text-blue-500" />
+               >
+           <FaChartBar className="text-blue-500" />
+
               <span>Marketing Analytics</span>
             </Link>
           </li>

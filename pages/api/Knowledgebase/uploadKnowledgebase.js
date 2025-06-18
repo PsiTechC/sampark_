@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
 const formidable = require("formidable");
-import { processUploadedFilesAndSaveText } from "@/lib/extractTextFromFile"; // Ensure this is your text extraction function
+import { processUploadedFilesAndSaveText } from "@/lib/extractTextFromFile"; 
 
 export const config = {
   api: {
-    bodyParser: false,  // Disable the default body parser to handle the file upload manually
+    bodyParser: false,  
   },
 };
 
@@ -19,7 +19,6 @@ export default async function handler(req, res) {
   }
 }
 
-// 📤 Upload handler
 async function handleFileUpload(req, res) {
   const uploadDir = path.join(process.cwd(), "pages/api/Knowledgebase/uploads");
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -62,7 +61,6 @@ async function handleFileUpload(req, res) {
   });
 }
 
-// 📥 Text retrieval handler
 async function handleFetchExtractedText(req, res) {
   const sessionId = req.query.sessionId;
 

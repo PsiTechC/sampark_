@@ -354,41 +354,55 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
 
   const handleFileUpload = async () => {
+    // Show loader when the process starts
     setLoading(true);
+  
     if (!selectedFiles.length) {
       setAlert({ type: "warning", message: "⚠️ Please select at least one file.", visible: true });
-      setLoading(false);
+      setLoading(false); // Hide loader if no files are selected
       return;
     }
-
+  
     const formData = new FormData();
     selectedFiles.forEach((file) => formData.append("files", file));
-
-    const res = await fetch(`${BASE_URL}/api/clients/pdfupload?agentId=${agentId}`, {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-    if (res.ok) {
-      setExistingPdfUrl(prev => {
-        const combined = [...(Array.isArray(prev) ? prev : []), ...data.files];
-
-        // remove duplicates based on URL
-        const uniqueMap = new Map();
-        for (const file of combined) {
-          uniqueMap.set(file.url, file); // last occurrence wins
-        }
-
-        return Array.from(uniqueMap.values());
+  
+    try {
+      // Perform the file upload request
+      const res = await fetch(`${BASE_URL}/api/clients/pdfupload?agentId=${agentId}`, {
+        method: "POST",
+        body: formData,
       });
-
-      setAlert({ type: "success", message: "✅ Files uploaded successfully!", visible: true });
-    } else {
-      setAlert({ type: "error", message: "❌ Upload failed: " + data.message, visible: true });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        // Handle successful upload
+        setExistingPdfUrl((prev) => {
+          const combined = [...(Array.isArray(prev) ? prev : []), ...data.files];
+  
+          // Remove duplicates based on URL
+          const uniqueMap = new Map();
+          for (const file of combined) {
+            uniqueMap.set(file.url, file); // Last occurrence wins
+          }
+  
+          return Array.from(uniqueMap.values());
+        });
+  
+        setAlert({ type: "success", message: "✅ Files uploaded successfully!", visible: true });
+      } else {
+        // Handle error during the upload process
+        setAlert({ type: "error", message: "❌ Upload failed: " + data.message, visible: true });
+      }
+    } catch (error) {
+      // Handle any unexpected errors
+      setAlert({ type: "error", message: "❌ An error occurred: " + error.message, visible: true });
+    } finally {
+      // Hide loader once the operation is complete (success or error)
+      setLoading(false);
     }
-    setLoading(false);
   };
+  
 
   const handleSaveCustomDescription = () => {
     if (!customDescription.trim()) {
