@@ -251,24 +251,7 @@ function ClientDashboard() {
                         <td className="px-4 py-2 font-medium text-gray-900">{agent.agent_name || "Unknown"}</td>
                         <td className="px-4 py-2 text-gray-700">${agent.totalCost || "0.00"}</td>
                         <td className="px-4 py-2 text-gray-700">{totalCalls}</td>
-                        {/* <td className="px-4 py-2">
-                          <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1">
-                            <span>Answered: {answered}</span>
-                            <span>Unanswered: {unanswered}</span>
-                          </div>
-                          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex shadow-inner">
-                            <div
-                              className="bg-blue-400 transition duration-200 hover:brightness-110"
-                              style={{ width: `${(answered / totalCalls) * 100 || 0}%` }}
-                              title={`Answered: ${answered}`}
-                            />
-                            <div
-                              className="bg-red-500 transition duration-200 hover:brightness-110"
-                              style={{ width: `${(unanswered / totalCalls) * 100 || 0}%` }}
-                              title={`Unanswered: ${unanswered}`}
-                            />
-                          </div>
-                        </td> */}
+
                         <td className="px-4 py-2">
                           <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1 flex-wrap gap-x-2">
                             <span>👍 {positive}</span>
@@ -307,74 +290,6 @@ function ClientDashboard() {
               </table>
             </>
           )}
-        </div>
-
-        {/* --- Campaigning Details --- */}
-        <div className="mt-8">
-          <h3 className="text-xl font-semibold px-4 pt-4 pb-2 text-gray-800">Campaigning Summary</h3>
-          <div className="flex-1 overflow-auto border border-gray-300 bg-white shadow-md rounded-lg">
-            <table className="min-w-full text-sm text-left">
-              <thead className="bg-gray-100 text-gray-700">
-                <tr>
-                  <th className="px-4 py-2">Agent</th>
-                  <th className="px-4 py-2">Total Campaigns</th>
-                  <th className="px-4 py-2">Sentiment</th>
-                </tr>
-              </thead>
-              <tbody>
-                {enrichedAgents.map((agent) => {
-                  const {
-                    agent_name,
-                    total_batches,
-                    campaign_positive,
-                    campaign_negative,
-                    campaign_neutral,
-                    campaign_no_response,
-                  } = agent;
-
-                  const totalSentiments =
-                    campaign_positive + campaign_negative + campaign_neutral + campaign_no_response;
-
-                  return (
-                    <tr key={agent.id} className="border-t hover:bg-gray-50 transition">
-                      <td className="px-4 py-2 font-medium text-gray-900">{agent_name || "Unknown"}</td>
-                      <td className="px-4 py-2 text-gray-700">{total_batches}</td>
-                      <td className="px-4 py-2">
-                        <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1 flex-wrap gap-x-2">
-                          <span>👍 {campaign_positive}</span>
-                          <span>👎 {campaign_negative}</span>
-                          <span>😐 {campaign_neutral}</span>
-                          <span>🚫 {campaign_no_response}</span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex shadow-inner">
-                          <div
-                            className="bg-green-300"
-                            style={{ width: `${(campaign_positive / totalSentiments) * 100 || 0}%` }}
-                            title={`Positive: ${campaign_positive}`}
-                          />
-                          <div
-                            className="bg-red-500"
-                            style={{ width: `${(campaign_negative / totalSentiments) * 100 || 0}%` }}
-                            title={`Negative: ${campaign_negative}`}
-                          />
-                          <div
-                            className="bg-yellow-400"
-                            style={{ width: `${(campaign_neutral / totalSentiments) * 100 || 0}%` }}
-                            title={`Neutral: ${campaign_neutral}`}
-                          />
-                          <div
-                            className="bg-gray-400"
-                            style={{ width: `${(campaign_no_response / totalSentiments) * 100 || 0}%` }}
-                            title={`No Response: ${campaign_no_response}`}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
     </div>

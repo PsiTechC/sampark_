@@ -32,6 +32,7 @@
 //       for (const callId of callIds) {
 //         const call = callData[callId];
 //         const { appointmentDate, name, customerNumber, email, purpose, summary } = call;
+//         let finalName = name;
 //         const timezone = call.timezone || "Asia/Kolkata";
 
 //         const validDate =
@@ -43,62 +44,6 @@
 
 //         if (!validDate) continue;
 
-//         // ✅ RETRY EMAIL IF WhatsApp SENT but email not sent
-//         if (call.isMailSend === true && call.isUserCorrectedMailSend !== true) {
-          
-//           const cleanNumber = customerNumber?.startsWith("+") ? customerNumber.slice(1) : customerNumber;
-//           const responseDoc = await whatsappResponsesCollection.findOne({ customer_number: cleanNumber });
-
-//           if (responseDoc?.raw_response_json) {
-//             try {
-//               const parsed = JSON.parse(responseDoc.raw_response_json);
-
-//               const detailsConfirmed = Object.values(parsed)
-//                 .flatMap((val) => Array.isArray(val) ? val : [val])
-//                 .includes("0_My_details_are_correct");
-
-//               const fallbackMeetLink = "https://meet.google.com/default-link";
-
-//               if (detailsConfirmed && email && email.includes("@")) {
-//                 const emailSent = await sendEmailNotification(email, appointmentDate, fallbackMeetLink, timezone);
-//                 if (emailSent) {
-//                   await whatsappResponsesCollection.updateOne(
-//                     { _id: responseDoc._id },
-//                     { $set: { isMailExtracted: true, isMailSentFromConfirmedDetails: true } }
-//                   );
-//                   await callCollection.updateOne(
-//                     { assistantId },
-//                     { $set: { [`data.${callId}.isUserCorrectedMailSend`]: true } }
-//                   );
-//                 }
-//               } else {
-//                 const emailCandidate = Object.values(parsed).find(
-//                   (val) => typeof val === "string" && val.includes("@")
-//                 );
-
-//                 if (emailCandidate) {
-//                   const extractedEmail = emailCandidate.trim();
-//                   const emailSent = await sendEmailNotification(extractedEmail, appointmentDate, fallbackMeetLink, timezone);
-
-//                   if (emailSent) {
-//                     await whatsappResponsesCollection.updateOne(
-//                       { _id: responseDoc._id },
-//                       { $set: { isMailExtracted: true } }
-//                     );
-//                     await callCollection.updateOne(
-//                       { assistantId },
-//                       { $set: { [`data.${callId}.isUserCorrectedMailSend`]: true } }
-//                     );
-//                   }
-//                 }
-//               }
-//             } catch (err) {
-//               console.error(`❌ Failed to parse WhatsApp response for ${customerNumber}:`, err.message);
-//             }
-//           }
-
-//           continue;
-//         }
 
 //         if (call.isMailSend === true && call.isUserCorrectedMailSend === true) {
 //           continue;
@@ -137,7 +82,7 @@
 //             user,
 //             tokens,
 //             {
-//               name,
+//               name: finalName,
 //               email,
 //               customerNumber,
 //               appointmentDate,
@@ -161,7 +106,7 @@
 //               timezone,
 //               companyName,
 //               companyPhone,
-//               name,
+//               name: finalName,
 //               purpose,
 //               summary,
 //               email,
@@ -193,6 +138,68 @@
 //               { assistantId },
 //               { $set: { [`data.${callId}.isUserCorrectedMailSend`]: false } }
 //             );
+
+//             const cleanNumber = customerNumber?.startsWith("+") ? customerNumber.slice(1) : customerNumber;
+//             const responseDoc = await whatsappResponsesCollection.findOne({ customer_number: cleanNumber });
+
+//             if (responseDoc?.raw_response_json) {
+//               try {
+//                 const parsed = JSON.parse(responseDoc.raw_response_json);
+
+//                 const nameFromWhatsApp = Object.entries(parsed).find(
+//                   ([key, val]) => key.toLowerCase().includes("name") && typeof val === "string"
+//                 )?.[1];
+
+//                 if (nameFromWhatsApp) {
+//                   finalName = nameFromWhatsApp.trim();  // Overriding the name with the WhatsApp response
+//                   console.log(`📛 Name overridden from WhatsApp response: ${finalName}`);
+//                 } else {
+//                   console.log("📛 No name found in WhatsApp response, using default.");
+//                 }
+
+//                 const detailsConfirmed = Object.values(parsed)
+//                   .flatMap((val) => Array.isArray(val) ? val : [val])
+//                   .includes("0_My_details_are_correct");
+
+//                 const fallbackMeetLink = "https://meet.google.com/default-link";
+
+//                 if (detailsConfirmed && email && email.includes("@")) {
+//                   const emailSent = await sendEmailNotification(email, appointmentDate, fallbackMeetLink, timezone);
+//                   if (emailSent) {
+//                     await whatsappResponsesCollection.updateOne(
+//                       { _id: responseDoc._id },
+//                       { $set: { isMailExtracted: true, isMailSentFromConfirmedDetails: true } }
+//                     );
+//                     await callCollection.updateOne(
+//                       { assistantId },
+//                       { $set: { [`data.${callId}.isUserCorrectedMailSend`]: true } }
+//                     );
+//                   }
+//                 } else {
+//                   const emailCandidate = Object.values(parsed).find(
+//                     (val) => typeof val === "string" && val.includes("@")
+//                   );
+
+//                   if (emailCandidate) {
+//                     const extractedEmail = emailCandidate.trim();
+//                     const emailSent = await sendEmailNotification(extractedEmail, appointmentDate, fallbackMeetLink, timezone);
+
+//                     if (emailSent) {
+//                       await whatsappResponsesCollection.updateOne(
+//                         { _id: responseDoc._id },
+//                         { $set: { isMailExtracted: true } }
+//                       );
+//                       await callCollection.updateOne(
+//                         { assistantId },
+//                         { $set: { [`data.${callId}.isUserCorrectedMailSend`]: true } }
+//                       );
+//                     }
+//                   }
+//                 }
+//               } catch (err) {
+//                 console.error(`❌ Failed to parse WhatsApp response for ${customerNumber}:`, err.message);
+//               }
+//             }
 //             const pdfDocs = await db.collection("s3pdfstore").find({ agentId: assistantId }).toArray();
 
 //             if (!pdfDocs.length) {
@@ -226,7 +233,6 @@
 //     return res.status(500).json({ message: "Internal Server Error" });
 //   }
 // }
-
 
 
 
@@ -266,6 +272,7 @@ export default async function handler(req, res) {
       for (const callId of callIds) {
         const call = callData[callId];
         const { appointmentDate, name, customerNumber, email, purpose, summary } = call;
+        let finalName = name;
         const timezone = call.timezone || "Asia/Kolkata";
 
         const validDate =
@@ -311,11 +318,52 @@ export default async function handler(req, res) {
         }
 
         if (call.isMailSend !== true && customerNumber && customerNumber !== "-") {
+          // Extract name from WhatsApp response before calling bookInAvailableCalendar
+          const cleanNumber = customerNumber?.startsWith("+") ? customerNumber.slice(1) : customerNumber;
+          const responseDoc = await whatsappResponsesCollection.findOne({ customer_number: cleanNumber });
+
+
+          let nameFromWhatsApp = null;
+          let emailCandidate = null;
+
+          if (responseDoc?.raw_response_json) {
+            try {
+              const parsed = JSON.parse(responseDoc.raw_response_json);
+
+               nameFromWhatsApp = Object.entries(parsed).find(
+                ([key, val]) => key.toLowerCase().includes("name") && typeof val === "string"
+              )?.[1];
+              emailCandidate = Object.values(parsed).find(
+                (val) => typeof val === "string" && val.includes("@")
+              );
+              
+              if (nameFromWhatsApp) {
+                finalName = nameFromWhatsApp.trim();  
+                console.log(`📛 Name overridden from WhatsApp response: ${finalName}`);
+              } else {
+                console.log("📛 No name found in WhatsApp response, using default.");
+              }
+              const updateFields = {};
+              if (nameFromWhatsApp) updateFields[`data.${callId}.name`] = nameFromWhatsApp.trim();
+              if (emailCandidate) updateFields[`data.${callId}.email`] = emailCandidate.trim();
+
+              if (Object.keys(updateFields).length > 0) {
+                await callCollection.updateOne(
+                  { assistantId },
+                  { $set: updateFields }
+                );
+                console.log(`📦 Updated userdatafromcallwithsentiment:`, updateFields);
+              }
+            } catch (err) {
+              console.error(`❌ Failed to parse WhatsApp response for ${customerNumber}:`, err.message);
+            }
+          }
+
           const bookingResult = await bookInAvailableCalendar(
             user,
             tokens,
             {
-              name,
+              name: finalName,
               email,
               customerNumber,
               appointmentDate,
@@ -339,7 +387,7 @@ export default async function handler(req, res) {
               timezone,
               companyName,
               companyPhone,
-              name,
+              name: finalName,
               purpose,
               summary,
               email,
@@ -372,56 +420,53 @@ export default async function handler(req, res) {
               { $set: { [`data.${callId}.isUserCorrectedMailSend`]: false } }
             );
 
-                      const cleanNumber = customerNumber?.startsWith("+") ? customerNumber.slice(1) : customerNumber;
-          const responseDoc = await whatsappResponsesCollection.findOne({ customer_number: cleanNumber });
+            if (responseDoc?.raw_response_json) {
+              try {
+                const parsed = JSON.parse(responseDoc.raw_response_json);
 
-          if (responseDoc?.raw_response_json) {
-            try {
-              const parsed = JSON.parse(responseDoc.raw_response_json);
+                const detailsConfirmed = Object.values(parsed)
+                  .flatMap((val) => Array.isArray(val) ? val : [val])
+                  .includes("0_My_details_are_correct");
 
-              const detailsConfirmed = Object.values(parsed)
-                .flatMap((val) => Array.isArray(val) ? val : [val])
-                .includes("0_My_details_are_correct");
+                const fallbackMeetLink = "https://meet.google.com/default-link";
 
-              const fallbackMeetLink = "https://meet.google.com/default-link";
-
-              if (detailsConfirmed && email && email.includes("@")) {
-                const emailSent = await sendEmailNotification(email, appointmentDate, fallbackMeetLink, timezone);
-                if (emailSent) {
-                  await whatsappResponsesCollection.updateOne(
-                    { _id: responseDoc._id },
-                    { $set: { isMailExtracted: true, isMailSentFromConfirmedDetails: true } }
-                  );
-                  await callCollection.updateOne(
-                    { assistantId },
-                    { $set: { [`data.${callId}.isUserCorrectedMailSend`]: true } }
-                  );
-                }
-              } else {
-                const emailCandidate = Object.values(parsed).find(
-                  (val) => typeof val === "string" && val.includes("@")
-                );
-
-                if (emailCandidate) {
-                  const extractedEmail = emailCandidate.trim();
-                  const emailSent = await sendEmailNotification(extractedEmail, appointmentDate, fallbackMeetLink, timezone);
-
+                if (detailsConfirmed && email && email.includes("@")) {
+                  const emailSent = await sendEmailNotification(email, appointmentDate, fallbackMeetLink, timezone);
                   if (emailSent) {
                     await whatsappResponsesCollection.updateOne(
                       { _id: responseDoc._id },
-                      { $set: { isMailExtracted: true } }
+                      { $set: { isMailExtracted: true, isMailSentFromConfirmedDetails: true } }
                     );
                     await callCollection.updateOne(
                       { assistantId },
                       { $set: { [`data.${callId}.isUserCorrectedMailSend`]: true } }
                     );
                   }
+                } else {
+                  const emailCandidate = Object.values(parsed).find(
+                    (val) => typeof val === "string" && val.includes("@")
+                  );
+
+                  if (emailCandidate) {
+                    const extractedEmail = emailCandidate.trim();
+                    const emailSent = await sendEmailNotification(extractedEmail, appointmentDate, fallbackMeetLink, timezone);
+
+                    if (emailSent) {
+                      await whatsappResponsesCollection.updateOne(
+                        { _id: responseDoc._id },
+                        { $set: { isMailExtracted: true } }
+                      );
+                      await callCollection.updateOne(
+                        { assistantId },
+                        { $set: { [`data.${callId}.isUserCorrectedMailSend`]: true } }
+                      );
+                    }
+                  }
                 }
+              } catch (err) {
+                console.error(`❌ Failed to parse WhatsApp response for ${customerNumber}:`, err.message);
               }
-            } catch (err) {
-              console.error(`❌ Failed to parse WhatsApp response for ${customerNumber}:`, err.message);
             }
-          }
             const pdfDocs = await db.collection("s3pdfstore").find({ agentId: assistantId }).toArray();
 
             if (!pdfDocs.length) {
@@ -437,15 +482,14 @@ export default async function handler(req, res) {
               }
             }
           }
-          const cleanNumber = customerNumber.startsWith("+") ? customerNumber.slice(1) : customerNumber;
-          const responseDoc = await whatsappResponsesCollection.findOne({ customer_number: cleanNumber });
 
           if (!responseDoc && appointmentDate !== "-") {
             await sendWhatsAppConfirmation(customerNumber, email, name);
             console.warn(`📩 Sent fallback WhatsApp confirmation for ${customerNumber} — no WhatsApp response found.`);
           }
-
         }
+
+
       }
     }
 
@@ -455,6 +499,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
+
 
 
 

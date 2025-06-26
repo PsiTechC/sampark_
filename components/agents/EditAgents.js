@@ -21,9 +21,9 @@ const tabs = [
   // { id: "calendar", label: "Calendar", icon: <FaCalendarAlt /> },
   // { id: "transcriber", label: "Transcriber", icon: <FaWaveSquare /> },
   { id: "voice", label: "Voice", icon: <FaVolumeUp /> },
-  // { id: "call", label: "Call", icon: <FaPhone /> },
   { id: "tools", label: "Additional Details", icon: <FaTools /> },
   { id: "analytics", label: "Tools", icon: <FaChartLine /> },
+  { id: "ws_broadcast", label: "WhatsApp Broadcast", icon: <FaPhone /> },
 
 
 ];
@@ -898,540 +898,53 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   };
 
 
+  const handleUploadWsBroadcastCsv = async () => {
+    setLoading(true);
+  
+    if (!selectedFiles.length) {
+      setAlert({
+        type: "warning",
+        message: "⚠️ Please select a CSV file to upload.",
+        visible: true,
+      });
+      setLoading(false);
+      return;
+    }
+  
+    const formData = new FormData();
+    selectedFiles.forEach((file) => formData.append("file", file));
+    formData.append("assistantId", agentId);
+    try {
+      const res = await fetch(`/api/ws_broadcast/upload_csv_ws`, {
+        method: "POST",
+        body: formData,
+      });
+  
+      const data = await res.json();
+  
+      if (!res.ok) {
+        throw new Error(data.message || "Upload failed");
+      }
+  
+      setAlert({
+        type: "success",
+        message: `✅ CSV uploaded successfully! Saved as: ${data.fileName}`,
+        visible: true,
+      });
+    } catch (err) {
+      setAlert({
+        type: "error",
+        message: "❌ Upload failed: " + err.message,
+        visible: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  
+
   return (
-    // <div className="min-h-screen bg-gray-50 p-6">
-    //   {loading && (
-    //     <div className="flex items-center justify-center min-h-screen">
-    //       <Loader />
-    //     </div>
-    //   )}
-    //   <div className="flex items-center space-x-2 border-b border-gray-200 mb-4">
-    //     {tabs.map((tab) => {
-    //       const isActive = activeTab === tab.id;
-
-    //       return (
-    //         <button
-    //           key={tab.id}
-    //           onClick={() => setActiveTab(tab.id)}
-    //           className={`flex items-center px-4 py-2 text-sm font-medium 
-    //             ${isActive
-    //               ? "bg-white border border-gray-200 border-b-0 rounded-t-md text-blue-600"
-    //               : "text-gray-500 hover:text-gray-700"
-    //             }`}
-    //           style={{ marginBottom: isActive ? "-1px" : "0" }}
-    //         >
-    //           <span className="mr-2">{tab.icon}</span>
-    //           {tab.label}
-    //         </button>
-    //       );
-    //     })}
-    //   </div>
-
-    //   {activeTab === "agent" && (
-    //     <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-    //       <h2 className="text-lg font-bold mb-2">Agent</h2>
-    //       <div>
-    //         <label className="block text-sm font-medium text-gray-700">
-    //           Agent Welcome Message
-    //         </label>
-    //         <textarea
-    //           className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-    //           rows={4}
-    //           value={welcomeMessage}
-    //           onChange={(e) => setWelcomeMessage(e.target.value)}
-    //         />
-    //       </div>
-    //       <div>
-    //         <label className="block text-sm font-medium text-gray-700">
-    //           Agent Prompt
-    //         </label>
-    //         <textarea
-    //           className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-    //           rows={6}
-    //           value={agentPromptCore}
-    //           onChange={(e) => setAgentPromptCore(e.target.value)}
-    //         />
-    //       </div>
-    //       <div>
-    //         <label className="block text-sm font-medium text-gray-700">
-    //           Knowledge Base (Auto-filled)
-    //         </label>
-    //         <textarea
-    //           className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-    //           rows={6}
-    //           value={agentPromptKB}
-    //           onChange={(e) => setAgentPromptKB(e.target.value)}
-    //         />
-    //       </div>
-    //       <div className="flex items-start mt-2 bg-gray-50 border border-blue-100 rounded p-3">
-    //         <span className="text-blue-500 font-semibold text-sm mr-2">i</span>
-    //         <p className="text-sm text-gray-600">
-    //           You can upload files from the <span className="font-medium text-gray-800">Knowledge Base</span> tab to automatically enhance your agent’s context and understanding.
-    //         </p>
-    //       </div>
-
-
-    //       <button
-    //         onClick={handleSaveAgent}
-    //         className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-    //       >
-    //         Save Agent
-    //       </button>
-    //     </div>
-    //   )}
-
-    //   {activeTab === "calendar" && (
-    //     <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-    //       <h2 className="text-lg font-bold mb-2">Calendar Integration</h2>
-
-    //       <button
-    //         onClick={() => {
-    //           const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI}&response_type=code&scope=https://www.googleapis.com/auth/calendar&access_type=offline&prompt=consent`;
-
-    //           window.open(authUrl, "_blank");
-    //         }}
-    //         className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-    //       >
-    //         Connect Google Calendar
-    //       </button>
-
-    //       <p className="text-gray-500 text-sm">
-    //         After connecting, your AI agent will be able to check availability and book meetings on your behalf.
-    //       </p>
-    //     </div>
-    //   )}
-
-    //   {activeTab === "knowledge" && (
-    //     <div className="mt-4">
-    //       <label className="block text-sm font-medium text-gray-700 mb-1">
-    //         Upload Knowledge Base
-    //       </label>
-    //       <input
-    //         type="file"
-    //         accept=".pdf,.doc,.docx,.txt"
-    //         multiple
-    //         onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
-    //         className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
-    //       />
-
-    //       <button
-    //         onClick={handleKnowledgeBase}
-    //         className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded text-sm shadow"
-    //       >
-    //         Upload Knowledge base
-    //       </button>
-
-    //       <p className="text-sm text-gray-500 mt-2">
-    //         Supported formats: PDF, Word (.doc/.docx), or Text (.txt)
-    //       </p>
-    //     </div>
-
-    //   )}
-
-    //   {activeTab === "transcriber" && (
-    //     <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-    //       <h2 className="text-lg font-bold mb-2">Transcriber</h2>
-    //       <div>
-    //         <label className="block text-sm font-medium text-gray-700">
-    //           Choose Transcriber
-    //         </label>
-    //         <select
-    //           className="w-full border p-2 rounded mt-1 text-sm bg-white focus:ring focus:ring-blue-200"
-    //           value={transcriber}
-    //           onChange={(e) => setTranscriber(e.target.value)}
-    //         >
-    //           <option value="Deepgram">Deepgram</option>
-    //           <option value="GoogleCloud">Google Cloud</option>
-    //         </select>
-    //       </div>
-    //       <div>
-    //         <label className="block text-sm font-medium text-gray-700">
-    //           Model
-    //         </label>
-    //         <input
-    //           type="text"
-    //           className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-    //           value={transcriberModel}
-    //           onChange={(e) => setTranscriberModel(e.target.value)}
-    //         />
-    //       </div>
-    //       <div>
-    //         <label className="block text-sm font-medium text-gray-700">
-    //           Keywords
-    //         </label>
-    //         <input
-    //           type="text"
-    //           className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-    //           placeholder="Bruce:100"
-    //           value={keywords}
-    //           onChange={(e) => setKeywords(e.target.value)}
-    //         />
-    //         <p className="text-gray-500 text-sm mt-1">
-    //           Enter certain keywords or proper nouns you want to boost while understanding speech.
-    //         </p>
-    //       </div>
-    //       <div>
-    //         <label className="block text-sm font-medium text-gray-700">
-    //           Number of words to wait for before interrupting
-    //         </label>
-    //         <input
-    //           type="range"
-    //           min={1}
-    //           max={10}
-    //           value={interruptWords}
-    //           onChange={(e) => setInterruptWords(e.target.value)}
-    //           className="w-full mt-1"
-    //         />
-    //         <p className="text-gray-500 text-sm">
-    //           Agent will not consider interruptions until {interruptWords} words are spoken.
-    //           <br />
-    //           (Stopwords such as "Stop," "Wait," "Hold On," etc., cause the agent to pause by default.)
-    //         </p>
-    //       </div>
-    //       <button
-    //         onClick={handleSaveAgent}
-    //         className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-    //       >
-    //         Save Transcriber Settings
-    //       </button>
-    //     </div>
-    //   )}
-
-    //   {activeTab === "tools" && (
-    //     <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-    //       <h2 className="text-lg font-bold mb-2">Additional Details</h2>
-    //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    //         <div>
-    //           <label className="block text-sm font-medium text-gray-700">Model</label>
-    //           <input
-    //             type="text"
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={model}
-    //             onChange={(e) => setModel(e.target.value)}
-    //           />
-    //         </div>
-    //         <div>
-    //           <label className="block text-sm font-medium text-gray-700">Temperature</label>
-    //           <input
-    //             type="number"
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={temperature}
-    //             onChange={(e) => setTemperature(Number(e.target.value))}
-    //           />
-    //         </div>
-    //         <div>
-    //           <label className="block text-sm font-medium text-gray-700">Max Tokens</label>
-    //           <input
-    //             type="number"
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={maxTokens}
-    //             onChange={(e) => setMaxTokens(Number(e.target.value))}
-    //           />
-    //         </div>
-    //         <div>
-    //           <label className="block text-sm font-medium text-gray-700">Call Terminate (s)</label>
-    //           <input
-    //             type="number"
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={callTerminate}
-    //             onChange={(e) => setCallTerminate(Number(e.target.value))}
-    //           />
-    //         </div>
-    //         <div>
-    //           <label className="block text-sm font-medium text-gray-700">Hangup After Silence (s)</label>
-    //           <input
-    //             type="number"
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={hangupAfterSilence}
-    //             onChange={(e) => setHangupAfterSilence(Number(e.target.value))}
-    //           />
-    //         </div>
-    //       </div>
-    //       <button
-    //         onClick={handleSaveDetails}
-    //         className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-    //       >
-    //         Save Details
-    //       </button>
-    //     </div>
-    //   )}
-
-    //   {activeTab === "voice" && (
-    //     <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-    //       <h2 className="text-lg font-bold mb-2">Voice</h2>
-
-    //       <label className="block text-sm font-medium text-gray-700 mb-1">Select Voice</label>
-    //       <select
-    //         className="w-full border p-2 rounded text-sm"
-    //         value={voice}
-    //         onChange={(e) => setVoice(e.target.value)}
-    //       >
-    //         <option value="">Select Voice</option>
-    //         {(isVapiAssistant ? vapiVoices : bolnaVoices).map((v) => {
-    //           if (isVapiAssistant) {
-    //             return (
-    //               <option key={v.id} value={v.id}>
-    //                 {v.name} - {v.description}
-    //               </option>
-    //             );
-    //           } else {
-    //             const display = v;
-    //             return (
-    //               <option key={v} value={v}>
-    //                 {display.charAt(0).toUpperCase() + display.slice(1)}
-    //               </option>
-    //             );
-    //           }
-    //         })}
-    //       </select>
-
-    //       <button
-    //         className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-    //         onClick={handleVoiceSave}
-    //       >
-    //         Save Voice
-    //       </button>
-    //     </div>
-    //   )}
-
-    //   {activeTab === "call" && (
-    //     <div className="bg-white p-4 rounded-b-md shadow">
-    //       <h2 className="text-lg font-bold mb-2">Call</h2>
-    //       <p className="text-sm text-gray-600">Call settings coming soon...</p>
-    //     </div>
-    //   )}
-
-    //   {activeTab === "analytics" && (
-    //     <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-    //       <h2 className="text-lg font-bold mb-2">Call Transfer Tool</h2>
-    //       <div className="flex flex-col md:flex-row gap-4">
-    //         <div className="flex-1">
-    //           <label className="block text-sm font-medium text-gray-700">Country Code</label>
-    //           <select
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={countryCode}
-    //             onChange={(e) => setCountryCode(e.target.value)}
-    //           >
-    //             <option value="+91">+91 (India)</option>
-    //             <option value="+1">+1 (US)</option>
-    //             {/* Add more countries in the future */}
-    //           </select>
-    //         </div>
-    //         <div className="flex-1">
-    //           <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-    //           <input
-    //             type="text"
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={phoneNumber}
-    //             onChange={(e) => setPhoneNumber(e.target.value)}
-    //             placeholder="Enter number without country code"
-    //           />
-    //         </div>
-
-    //         {/* Department Dropdown */}
-    //         <div className="flex-1">
-    //           <label className="block text-sm font-medium text-gray-700">Select Department</label>
-    //           <select
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={selectedDepartment}
-    //             onChange={(e) => setSelectedDepartment(e.target.value)}
-    //           >
-    //             <option value="sales">Sales</option>
-    //             <option value="technical">Technical</option>
-    //             <option value="support">Support</option>
-    //             <option value="custom">Add Custom Department</option>
-    //           </select>
-    //         </div>
-    //       </div>
-
-    //       {/* Show input for custom description if "Add Custom Description" is selected */}
-    //       {selectedDepartment === "custom" && !descriptionSaved && (
-    //         <div className="mt-4">
-    //           <label className="block text-sm font-medium text-gray-700 mb-2">Custom Description</label>
-    //           <input
-    //             type="text"
-    //             className="w-full border p-2 rounded text-sm"
-    //             value={customDescription}
-    //             onChange={(e) => setCustomDescription(e.target.value)}
-    //             placeholder="Enter custom description"
-    //           />
-    //           <button
-    //             onClick={() => handleSaveCustomDescription()}
-    //             className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
-    //           >
-    //             Save Description
-    //           </button>
-    //         </div>
-    //       )}
-
-    //       <button
-    //         className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-4"
-    //         onClick={handleSavePhoneTool}
-    //       >
-    //         Save Number
-    //       </button>
-
-    //       {isVapiAssistant && additionalDetails?.vapiTransferTools?.length > 0 && (
-    //         <>
-    //           {additionalDetails.vapiTransferTools.map((tool) => (
-    //             <p key={tool.id} className="flex items-center text-sm text-gray-700 mt-1">
-    //               <strong className="mr-1">Transfer call for:</strong>
-    //               <span className="text-gray-900 font-medium mr-2">{tool.number}</span>
-    //               <button
-    //                 onClick={() => handleDeleteVapiTool(tool.id)}
-    //                 className="text-red-500 hover:text-red-700"
-    //                 title="Delete"
-    //               >
-    //                 <FaTrash />
-    //               </button>
-    //             </p>
-    //           ))}
-    //         </>
-    //       )}
-
-
-
-    //       {Object.entries(agent?.tasks?.[0]?.tools_config?.api_tools?.tools_params || {}).map(
-    //         ([key, config]) => {
-    //           const num = config?.param?.call_transfer_number;
-    //           return (
-    //             num && (
-    //               <p key={key} className="flex items-center text-sm text-gray-700 mt-1">
-    //                 <strong className="mr-1">Transfer call for:</strong>
-    //                 <span className="text-gray-900 font-medium mr-2">{num}</span>
-    //                 <button
-    //                   onClick={() => handleSavePhoneTool(true, key)}
-    //                   className="text-red-500 hover:text-red-700"
-    //                   title="Delete"
-    //                 >
-    //                   <FaTrash />
-    //                 </button>
-    //               </p>
-    //             )
-    //           );
-    //         }
-    //       )}
-
-
-    //       <div className="mt-6">
-    //         <label className="block text-sm font-medium text-gray-700 mb-1">
-    //           Upload Files (for tools)
-    //         </label>
-
-    //         {/* Uploaded files section */}
-    //         {existingPdfUrl && existingPdfUrl.length > 0 && (
-    //           <div className="mb-4">
-    //             <p className="text-sm font-medium text-gray-700 mb-1">Uploaded Files:</p>
-    //             <ul className="space-y-2 text-sm">
-    //               {existingPdfUrl.map((file, idx) => (
-    //                 <li key={idx} className="flex items-center gap-2">
-    //                   <a
-    //                     href={file.url}
-    //                     target="_blank"
-    //                     rel="noopener noreferrer"
-    //                     className="text-blue-600 underline"
-    //                   >
-    //                     📄 {file.name || file.url.split("/").pop().replace(/^[^_]+_/, "")}
-    //                   </a>
-    //                   {file.uploadedAt && (
-    //                     <span className="text-gray-400 text-xs">
-    //                       ({new Date(file.uploadedAt).toLocaleString()})
-    //                     </span>
-    //                   )}
-    //                   <button
-    //                     onClick={() => handleDeletePDF(file)}
-    //                     className="text-red-600 hover:underline ml-2"
-    //                   >
-    //                     Remove
-    //                   </button>
-    //                 </li>
-    //               ))}
-    //             </ul>
-    //           </div>
-    //         )}
-
-    //         {/* Upload input always shown */}
-    //         <input
-    //           type="file"
-    //           accept=".pdf,.doc,.docx,image/*"
-    //           multiple
-    //           onChange={(e) => {
-    //             const files = e.target.files;
-    //             if (files?.length) {
-    //               setSelectedFiles(Array.from(files));
-    //             }
-    //           }}
-    //           className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
-    //         />
-
-    //         <button
-    //           onClick={handleFileUpload}
-    //           className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
-    //         >
-    //           Upload Selected Files
-    //         </button>
-    //       </div>
-
-
-
-    //       <div className="mt-4">
-    //         <label className="block text-sm font-medium text-gray-700 mb-1">
-    //           Google Meet Link
-    //         </label>
-
-    //         {existingMeetLink ? (
-    //           <div className="flex items-center gap-3 text-sm mb-2">
-    //             <a
-    //               href={existingMeetLink}
-    //               target="_blank"
-    //               rel="noopener noreferrer"
-    //               className="text-blue-600 underline break-all"
-    //             >
-    //               {existingMeetLink}
-    //             </a>
-    //             <button
-    //               onClick={handleDeleteMeetLink}
-    //               className="text-red-600 hover:underline"
-    //             >
-    //               Remove
-    //             </button>
-    //           </div>
-    //         ) : (
-    //           <div className="flex gap-2">
-    //             <input
-    //               type="text"
-    //               value={meetLink}
-    //               onChange={(e) => setMeetLink(e.target.value)}
-    //               placeholder="https://meet.google.com/xxx-xxxx-xxx"
-    //               className="w-full border p-2 rounded text-sm"
-    //             />
-    //             <button
-    //               onClick={handleUploadMeetLink}
-    //               className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-    //             >
-    //               Save Link
-    //             </button>
-    //           </div>
-    //         )}
-            
-    //       </div>
-    //     </div>
-
-    //   )}
-
-    //   {alert.visible && (
-    //     <Alert
-    //       type={alert.type}
-    //       message={alert.message}
-    //       isConfirm={alert.isConfirm}
-    //       onClose={() => setAlert({ ...alert, visible: false })}
-    //       onConfirm={alert.onConfirm}
-    //     />
-    //   )}
-    // </div>
-
-
-
     <div className="min-h-screen bg-gray-50 p-6">
   {loading && (
     <div className="flex items-center justify-center min-h-screen">
@@ -1953,6 +1466,36 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
         </div>
 
       )}
+      {activeTab === "ws_broadcast" && (
+  <div className="bg-white p-4 rounded-b-md shadow space-y-4">
+    <h2 className="text-lg font-bold mb-2">WhatsApp Broadcast CSV Upload</h2>
+
+    <p className="text-sm text-gray-600 mb-2">
+      Upload a CSV file containing phone numbers to initiate a broadcast.
+    </p>
+
+    <input
+      type="file"
+      accept=".csv"
+      onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
+      className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
+    />
+
+    <button
+      onClick={handleUploadWsBroadcastCsv}
+      className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
+    >
+      Upload CSV
+    </button>
+
+    {selectedFiles.length > 0 && (
+      <p className="text-sm text-green-600 mt-2">
+        📄 Selected: {selectedFiles.map((f) => f.name).join(", ")}
+      </p>
+    )}
+  </div>
+)}
+
 
     </>
   )}
