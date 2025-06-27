@@ -94,9 +94,6 @@ export default async function handler(req, res) {
     // 🚀 Send response immediately before background processing
     res.status(200).json({
       message: "CSV uploaded and assistant mapping updated successfully.",
-      filePath: uploadedFile.filepath,
-      fileName: uploadedFile.originalFilename || uploadedFile.newFilename,
-      userId,
       assistantId,
     });
 

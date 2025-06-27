@@ -119,19 +119,28 @@ export default function Dashboard() {
 
   const fetchVapiAssistants = async () => {
     try {
-      // Step 1: Get user-mapped assistant IDs from internal API
-      const resMapping = await fetch("/api/map/getUserAgents");
-      const mappingData = await resMapping.json();
+      let assistantIds = [];
+      const cached = localStorage.getItem("assistant_ids");
 
-      if (!resMapping.ok || !Array.isArray(mappingData.assistants)) {
-        console.error("❌ Failed to retrieve assistant IDs");
-        setVapiAssistants([]);
-        return;
+      if (cached) {
+        assistantIds = JSON.parse(cached);
+        setVapiAssistants(assistantIds.map((id) => ({ id, name: "loading..." })));
+      } else {
+        const resMapping = await fetch("/api/map/getUserAgents");
+        const mappingData = await resMapping.json();
+  
+        if (!resMapping.ok || !Array.isArray(mappingData.assistants)) {
+          console.error("❌ Failed to retrieve assistant IDs");
+          setVapiAssistants([]);
+          return;
+        }
+  
+        assistantIds = mappingData.assistants;
+        localStorage.setItem("assistant_ids", JSON.stringify(assistantIds));
+        setVapiAssistants(assistantIds.map((id) => ({ id, name: "" })));
       }
-
-      const assistantIds = mappingData.assistants;
-
-      // Step 2: Fetch assistant details one by one using the Vapi public endpoint
+  
+      // Step 3: Fetch assistant details using the Vapi public endpoint
       const fetchedAssistants = await Promise.all(
         assistantIds.map(async (id) => {
           try {
@@ -140,26 +149,26 @@ export default function Dashboard() {
                 Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
               },
             });
-
+  
             if (!res.ok) throw new Error(`Failed to fetch assistant ${id}`);
-
             const data = await res.json();
             return data;
           } catch (err) {
-            console.error(`Failed to fetch assistant ${id}:`, err);
+            console.error(`❌ Failed to fetch assistant ${id}:`, err);
             return null;
           }
         })
       );
-
-      // Filter out failed fetches
+  
+      // Step 4: Filter out failed fetches
       const validAssistants = fetchedAssistants.filter((a) => a !== null);
       setVapiAssistants(validAssistants);
     } catch (err) {
-      console.error("Failed to fetch mapped assistants:", err);
+      console.error("❌ Failed to fetch mapped assistants:", err);
       setVapiAssistants([]);
     }
   };
+  
 
 
   useEffect(() => {

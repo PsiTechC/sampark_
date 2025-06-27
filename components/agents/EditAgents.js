@@ -6,26 +6,18 @@ import Loader from "../ui/Loader";
 import {
   FaBrain,
   FaFileAlt,
-  FaWaveSquare,
   FaVolumeUp,
   FaPhone,
-  FaTools,
   FaChartLine,
-  FaCalendarAlt,
   FaTrash
 } from "react-icons/fa";
 
 const tabs = [
   { id: "agent", label: "Agent", icon: <FaFileAlt /> },
   { id: "knowledge", label: "Knowledge Base", icon: <FaBrain /> },
-  // { id: "calendar", label: "Calendar", icon: <FaCalendarAlt /> },
-  // { id: "transcriber", label: "Transcriber", icon: <FaWaveSquare /> },
   { id: "voice", label: "Voice", icon: <FaVolumeUp /> },
-  { id: "tools", label: "Additional Details", icon: <FaTools /> },
   { id: "analytics", label: "Tools", icon: <FaChartLine /> },
   { id: "ws_broadcast", label: "WhatsApp Broadcast", icon: <FaPhone /> },
-
-
 ];
 
 
@@ -154,15 +146,11 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
     "Loading..."
   );
 
-  // State for LLM tab
-  const [llmProvider, setLlmProvider] = useState("Openai");
-  const [llmModel, setLlmModel] = useState("gpt-3.5-turbo");
   const [maxTokens, setMaxTokens] = useState(1000);
   const [temperature, setTemperature] = useState(0.1);
   const [alert, setAlert] = useState({ type: "", message: "", visible: false });
   const [countryCode, setCountryCode] = useState("+91");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [refreshAgentFlag, setRefreshAgentFlag] = useState(false);
 
   const [pdfStatusMessage, setPdfStatusMessage] = useState("Checking for uploaded PDF...");
   const [existingPdfUrl, setExistingPdfUrl] = useState([]);
@@ -174,8 +162,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   const [transcriberModel, setTranscriberModel] = useState("nova-2");
   const [keywords, setKeywords] = useState("Bruce:100");
   const [interruptWords, setInterruptWords] = useState(1);
-  const [sessionId, setSessionId] = useState(null);
-  const [extractedText, setExtractedText] = useState("");
   const [model, setModel] = useState("gpt-4o");
   const [callTerminate, setCallTerminate] = useState(90);
   const [hangupAfterSilence, setHangupAfterSilence] = useState(10);
@@ -185,7 +171,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   const [agentPromptCore, setAgentPromptCore] = useState("");
   const [agentPromptKB, setAgentPromptKB] = useState("");
 
-  const [pdfFile, setPdfFile] = useState(null);
 
   const [selectedDepartment, setSelectedDepartment] = useState("sales");
   const [customDescription, setCustomDescription] = useState(""); // Store custom description
@@ -356,39 +341,39 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   const handleFileUpload = async () => {
     // Show loader when the process starts
     setLoading(true);
-  
+
     if (!selectedFiles.length) {
       setAlert({ type: "warning", message: "⚠️ Please select at least one file.", visible: true });
       setLoading(false); // Hide loader if no files are selected
       return;
     }
-  
+
     const formData = new FormData();
     selectedFiles.forEach((file) => formData.append("files", file));
-  
+
     try {
       // Perform the file upload request
       const res = await fetch(`${BASE_URL}/api/clients/pdfupload?agentId=${agentId}`, {
         method: "POST",
         body: formData,
       });
-  
+
       const data = await res.json();
-  
+
       if (res.ok) {
         // Handle successful upload
         setExistingPdfUrl((prev) => {
           const combined = [...(Array.isArray(prev) ? prev : []), ...data.files];
-  
+
           // Remove duplicates based on URL
           const uniqueMap = new Map();
           for (const file of combined) {
             uniqueMap.set(file.url, file); // Last occurrence wins
           }
-  
+
           return Array.from(uniqueMap.values());
         });
-  
+
         setAlert({ type: "success", message: "✅ Files uploaded successfully!", visible: true });
       } else {
         // Handle error during the upload process
@@ -402,7 +387,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       setLoading(false);
     }
   };
-  
+
 
   const handleSaveCustomDescription = () => {
     if (!customDescription.trim()) {
@@ -415,7 +400,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   };
 
   const handleDeletePDF = async (file) => {
-    setLoading(true); 
+    setLoading(true);
     setAlert({
       visible: true,
       type: "confirm",
@@ -470,7 +455,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
         message: "❌ Agent ID is missing.",
         visible: true,
       });
-      setLoading(false); 
+      setLoading(false);
       return;
     }
 
@@ -565,11 +550,11 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           number: fullNumber,
           description: departmentDescription,
         };
-  
+
         setAdditionalDetails((prevState) => ({
           ...prevState,
           vapiTransferTools: [
-            ...(Array.isArray(prevState.vapiTransferTools) ? prevState.vapiTransferTools : []), 
+            ...(Array.isArray(prevState.vapiTransferTools) ? prevState.vapiTransferTools : []),
             newTool
           ], // Add the new tool to the list
         }));
@@ -600,7 +585,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
 
   const handleDeleteMeetLink = () => {
-    setLoading(true); 
+    setLoading(true);
     setAlert({
       type: "confirm",
       message: "Are you sure you want to delete the meet link?",
@@ -790,47 +775,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
 
 
-  const handleSaveDetails = async () => {
-    setLoading(true);
-    const endpoint = `https://api.vapi.ai/assistant/${agentId}`;
-
-    const payload = {
-      model: {
-        model,
-        provider: "openai",
-        temperature,
-        messages: [
-          {
-            role: "system",
-            content: agentPromptCore + "\n\n" + agentPromptKB,
-          },
-        ],
-      },
-    };
-
-    try {
-      const res = await fetch(endpoint, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update details");
-      setAlert({ type: "success", message: "✅ Agent details updated successfully!", visible: true });
-    } catch (err) {
-      setAlert({ type: "error", message: "❌ Error updating details: " + err.message, visible: true });
-    }
-    finally {
-      setLoading(false); // Hide loader after the operation is complete (success or error)
-    }
-  };
-
-
-
   const handleDeleteVapiTool = async (toolId) => {
     if (!toolId || !agentId) return;
     setLoading(true);
@@ -900,7 +844,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
   const handleUploadWsBroadcastCsv = async () => {
     setLoading(true);
-  
+
     if (!selectedFiles.length) {
       setAlert({
         type: "warning",
@@ -910,7 +854,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       setLoading(false);
       return;
     }
-  
+
     const formData = new FormData();
     selectedFiles.forEach((file) => formData.append("file", file));
     formData.append("assistantId", agentId);
@@ -919,13 +863,13 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
         method: "POST",
         body: formData,
       });
-  
+
       const data = await res.json();
-  
+
       if (!res.ok) {
         throw new Error(data.message || "Upload failed");
       }
-  
+
       setAlert({
         type: "success",
         message: `✅ CSV uploaded successfully! Saved as: ${data.fileName}`,
@@ -941,566 +885,504 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
       setLoading(false);
     }
   };
-  
-  
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-  {loading && (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loader />
-    </div>
-  )}
+      {loading && (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader />
+        </div>
+      )}
 
-  {!loading && (
-    <>
-      <div className="flex items-center space-x-2 border-b border-gray-200 mb-4">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id;
+      {!loading && (
+        <>
+          <div className="flex items-center space-x-2 border-b border-gray-200 mb-4">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
 
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-4 py-2 text-sm font-medium 
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center px-4 py-2 text-sm font-medium 
                 ${isActive
-                  ? "bg-white border border-gray-200 border-b-0 rounded-t-md text-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-                }`}
-              style={{ marginBottom: isActive ? "-1px" : "0" }}
-            >
-              <span className="mr-2">{tab.icon}</span>
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-     {activeTab === "agent" && (
-        <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-          <h2 className="text-lg font-bold mb-2">Agent</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Agent Welcome Message
-            </label>
-            <textarea
-              className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-              rows={4}
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Agent Prompt
-            </label>
-            <textarea
-              className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-              rows={6}
-              value={agentPromptCore}
-              onChange={(e) => setAgentPromptCore(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Knowledge Base (Auto-filled)
-            </label>
-            <textarea
-              className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-              rows={6}
-              value={agentPromptKB}
-              onChange={(e) => setAgentPromptKB(e.target.value)}
-            />
-          </div>
-          <div className="flex items-start mt-2 bg-gray-50 border border-blue-100 rounded p-3">
-            <span className="text-blue-500 font-semibold text-sm mr-2">i</span>
-            <p className="text-sm text-gray-600">
-              You can upload files from the <span className="font-medium text-gray-800">Knowledge Base</span> tab to automatically enhance your agent’s context and understanding.
-            </p>
-          </div>
-
-
-          <button
-            onClick={handleSaveAgent}
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-          >
-            Save Agent
-          </button>
-        </div>
-      )}
-
-      {activeTab === "calendar" && (
-        <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-          <h2 className="text-lg font-bold mb-2">Calendar Integration</h2>
-
-          <button
-            onClick={() => {
-              const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI}&response_type=code&scope=https://www.googleapis.com/auth/calendar&access_type=offline&prompt=consent`;
-
-              window.open(authUrl, "_blank");
-            }}
-            className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-          >
-            Connect Google Calendar
-          </button>
-
-          <p className="text-gray-500 text-sm">
-            After connecting, your AI agent will be able to check availability and book meetings on your behalf.
-          </p>
-        </div>
-      )}
-
-      {activeTab === "knowledge" && (
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Upload Knowledge Base
-          </label>
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,.txt"
-            multiple
-            onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
-            className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
-          />
-
-          <button
-            onClick={handleKnowledgeBase}
-            className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded text-sm shadow"
-          >
-            Upload Knowledge base
-          </button>
-
-          <p className="text-sm text-gray-500 mt-2">
-            Supported formats: PDF, Word (.doc/.docx), or Text (.txt)
-          </p>
-        </div>
-
-      )}
-
-      {activeTab === "transcriber" && (
-        <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-          <h2 className="text-lg font-bold mb-2">Transcriber</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Choose Transcriber
-            </label>
-            <select
-              className="w-full border p-2 rounded mt-1 text-sm bg-white focus:ring focus:ring-blue-200"
-              value={transcriber}
-              onChange={(e) => setTranscriber(e.target.value)}
-            >
-              <option value="Deepgram">Deepgram</option>
-              <option value="GoogleCloud">Google Cloud</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Model
-            </label>
-            <input
-              type="text"
-              className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-              value={transcriberModel}
-              onChange={(e) => setTranscriberModel(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Keywords
-            </label>
-            <input
-              type="text"
-              className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
-              placeholder="Bruce:100"
-              value={keywords}
-              onChange={(e) => setKeywords(e.target.value)}
-            />
-            <p className="text-gray-500 text-sm mt-1">
-              Enter certain keywords or proper nouns you want to boost while understanding speech.
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Number of words to wait for before interrupting
-            </label>
-            <input
-              type="range"
-              min={1}
-              max={10}
-              value={interruptWords}
-              onChange={(e) => setInterruptWords(e.target.value)}
-              className="w-full mt-1"
-            />
-            <p className="text-gray-500 text-sm">
-              Agent will not consider interruptions until {interruptWords} words are spoken.
-              <br />
-              (Stopwords such as "Stop," "Wait," "Hold On," etc., cause the agent to pause by default.)
-            </p>
-          </div>
-          <button
-            onClick={handleSaveAgent}
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-          >
-            Save Transcriber Settings
-          </button>
-        </div>
-      )}
-
-      {activeTab === "tools" && (
-        <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-          <h2 className="text-lg font-bold mb-2">Additional Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Model</label>
-              <input
-                type="text"
-                className="w-full border p-2 rounded text-sm"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Temperature</label>
-              <input
-                type="number"
-                className="w-full border p-2 rounded text-sm"
-                value={temperature}
-                onChange={(e) => setTemperature(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Max Tokens</label>
-              <input
-                type="number"
-                className="w-full border p-2 rounded text-sm"
-                value={maxTokens}
-                onChange={(e) => setMaxTokens(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Call Terminate (s)</label>
-              <input
-                type="number"
-                className="w-full border p-2 rounded text-sm"
-                value={callTerminate}
-                onChange={(e) => setCallTerminate(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Hangup After Silence (s)</label>
-              <input
-                type="number"
-                className="w-full border p-2 rounded text-sm"
-                value={hangupAfterSilence}
-                onChange={(e) => setHangupAfterSilence(Number(e.target.value))}
-              />
-            </div>
-          </div>
-          <button
-            onClick={handleSaveDetails}
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-          >
-            Save Details
-          </button>
-        </div>
-      )}
-
-      {activeTab === "voice" && (
-        <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-          <h2 className="text-lg font-bold mb-2">Voice</h2>
-
-          <label className="block text-sm font-medium text-gray-700 mb-1">Select Voice</label>
-          <select
-            className="w-full border p-2 rounded text-sm"
-            value={voice}
-            onChange={(e) => setVoice(e.target.value)}
-          >
-            <option value="">Select Voice</option>
-            {(isVapiAssistant ? vapiVoices : bolnaVoices).map((v) => {
-              if (isVapiAssistant) {
-                return (
-                  <option key={v.id} value={v.id}>
-                    {v.name} - {v.description}
-                  </option>
-                );
-              } else {
-                const display = v;
-                return (
-                  <option key={v} value={v}>
-                    {display.charAt(0).toUpperCase() + display.slice(1)}
-                  </option>
-                );
-              }
+                      ? "bg-white border border-gray-200 border-b-0 rounded-t-md text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  style={{ marginBottom: isActive ? "-1px" : "0" }}
+                >
+                  <span className="mr-2">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              );
             })}
-          </select>
-
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-            onClick={handleVoiceSave}
-          >
-            Save Voice
-          </button>
-        </div>
-      )}
-
-      {activeTab === "call" && (
-        <div className="bg-white p-4 rounded-b-md shadow">
-          <h2 className="text-lg font-bold mb-2">Call</h2>
-          <p className="text-sm text-gray-600">Call settings coming soon...</p>
-        </div>
-      )}
-
-      {activeTab === "analytics" && (
-        <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-          <h2 className="text-lg font-bold mb-2">Call Transfer Tool</h2>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">Country Code</label>
-              <select
-                className="w-full border p-2 rounded text-sm"
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-              >
-                <option value="+91">+91 (India)</option>
-                <option value="+1">+1 (US)</option>
-                {/* Add more countries in the future */}
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-              <input
-                type="text"
-                className="w-full border p-2 rounded text-sm"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter number without country code"
-              />
-            </div>
-
-            {/* Department Dropdown */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">Select Department</label>
-              <select
-                className="w-full border p-2 rounded text-sm"
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-              >
-                <option value="sales">Sales</option>
-                <option value="technical">Technical</option>
-                <option value="support">Support</option>
-                <option value="custom">Add Custom Department</option>
-              </select>
-            </div>
           </div>
+          {activeTab === "agent" && (
+            <div className="bg-white p-4 rounded-b-md shadow space-y-4">
+              <h2 className="text-lg font-bold mb-2">Agent</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Agent Welcome Message
+                </label>
+                <textarea
+                  className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
+                  rows={4}
+                  value={welcomeMessage}
+                  onChange={(e) => setWelcomeMessage(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Agent Prompt
+                </label>
+                <textarea
+                  className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
+                  rows={6}
+                  value={agentPromptCore}
+                  onChange={(e) => setAgentPromptCore(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Knowledge Base (Auto-filled)
+                </label>
+                <textarea
+                  className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
+                  rows={6}
+                  value={agentPromptKB}
+                  onChange={(e) => setAgentPromptKB(e.target.value)}
+                />
+              </div>
+              <div className="flex items-start mt-2 bg-gray-50 border border-blue-100 rounded p-3">
+                <span className="text-blue-500 font-semibold text-sm mr-2">i</span>
+                <p className="text-sm text-gray-600">
+                  You can upload files from the <span className="font-medium text-gray-800">Knowledge Base</span> tab to automatically enhance your agent’s context and understanding.
+                </p>
+              </div>
 
-          {/* Show input for custom description if "Add Custom Description" is selected */}
-          {selectedDepartment === "custom" && !descriptionSaved && (
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Custom Description</label>
-              <input
-                type="text"
-                className="w-full border p-2 rounded text-sm"
-                value={customDescription}
-                onChange={(e) => setCustomDescription(e.target.value)}
-                placeholder="Enter custom description"
-              />
+
               <button
-                onClick={() => handleSaveCustomDescription()}
-                className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
+                onClick={handleSaveAgent}
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
               >
-                Save Description
+                Save Agent
+              </button>
+            </div>
+          )}
+          {activeTab === "calendar" && (
+            <div className="bg-white p-4 rounded-b-md shadow space-y-4">
+              <h2 className="text-lg font-bold mb-2">Calendar Integration</h2>
+
+              <button
+                onClick={() => {
+                  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI}&response_type=code&scope=https://www.googleapis.com/auth/calendar&access_type=offline&prompt=consent`;
+
+                  window.open(authUrl, "_blank");
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded text-sm"
+              >
+                Connect Google Calendar
+              </button>
+
+              <p className="text-gray-500 text-sm">
+                After connecting, your AI agent will be able to check availability and book meetings on your behalf.
+              </p>
+            </div>
+          )}
+          {activeTab === "knowledge" && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Upload Knowledge Base
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                multiple
+                onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
+                className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
+              />
+
+              <button
+                onClick={handleKnowledgeBase}
+                className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded text-sm shadow"
+              >
+                Upload Knowledge base
+              </button>
+
+              <p className="text-sm text-gray-500 mt-2">
+                Supported formats: PDF, Word (.doc/.docx), or Text (.txt)
+              </p>
+            </div>
+
+          )}
+          {activeTab === "transcriber" && (
+            <div className="bg-white p-4 rounded-b-md shadow space-y-4">
+              <h2 className="text-lg font-bold mb-2">Transcriber</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Choose Transcriber
+                </label>
+                <select
+                  className="w-full border p-2 rounded mt-1 text-sm bg-white focus:ring focus:ring-blue-200"
+                  value={transcriber}
+                  onChange={(e) => setTranscriber(e.target.value)}
+                >
+                  <option value="Deepgram">Deepgram</option>
+                  <option value="GoogleCloud">Google Cloud</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Model
+                </label>
+                <input
+                  type="text"
+                  className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
+                  value={transcriberModel}
+                  onChange={(e) => setTranscriberModel(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Keywords
+                </label>
+                <input
+                  type="text"
+                  className="w-full border p-2 rounded mt-1 text-sm focus:ring focus:ring-blue-200"
+                  placeholder="Bruce:100"
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                />
+                <p className="text-gray-500 text-sm mt-1">
+                  Enter certain keywords or proper nouns you want to boost while understanding speech.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Number of words to wait for before interrupting
+                </label>
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  value={interruptWords}
+                  onChange={(e) => setInterruptWords(e.target.value)}
+                  className="w-full mt-1"
+                />
+                <p className="text-gray-500 text-sm">
+                  Agent will not consider interruptions until {interruptWords} words are spoken.
+                  <br />
+                  (Stopwords such as "Stop," "Wait," "Hold On," etc., cause the agent to pause by default.)
+                </p>
+              </div>
+              <button
+                onClick={handleSaveAgent}
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
+              >
+                Save Transcriber Settings
+              </button>
+            </div>
+          )}
+          {activeTab === "voice" && (
+            <div className="bg-white p-4 rounded-b-md shadow space-y-4">
+              <h2 className="text-lg font-bold mb-2">Voice</h2>
+
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select Voice</label>
+              <select
+                className="w-full border p-2 rounded text-sm"
+                value={voice}
+                onChange={(e) => setVoice(e.target.value)}
+              >
+                <option value="">Select Voice</option>
+                {(isVapiAssistant ? vapiVoices : bolnaVoices).map((v) => {
+                  if (isVapiAssistant) {
+                    return (
+                      <option key={v.id} value={v.id}>
+                        {v.name} - {v.description}
+                      </option>
+                    );
+                  } else {
+                    const display = v;
+                    return (
+                      <option key={v} value={v}>
+                        {display.charAt(0).toUpperCase() + display.slice(1)}
+                      </option>
+                    );
+                  }
+                })}
+              </select>
+
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
+                onClick={handleVoiceSave}
+              >
+                Save Voice
               </button>
             </div>
           )}
 
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-4"
-            onClick={handleSavePhoneTool}
-          >
-            Save Number
-          </button>
-
-          {isVapiAssistant && additionalDetails?.vapiTransferTools?.length > 0 && (
-            <>
-              {additionalDetails.vapiTransferTools.map((tool) => (
-                <p key={tool.id} className="flex items-center text-sm text-gray-700 mt-1">
-                  <strong className="mr-1">Transfer call for:</strong>
-                  <span className="text-gray-900 font-medium mr-2">{tool.number}</span>
-                  <button
-                    onClick={() => handleDeleteVapiTool(tool.id)}
-                    className="text-red-500 hover:text-red-700"
-                    title="Delete"
-                  >
-                    <FaTrash />
-                  </button>
-                </p>
-              ))}
-            </>
+          {activeTab === "call" && (
+            <div className="bg-white p-4 rounded-b-md shadow">
+              <h2 className="text-lg font-bold mb-2">Call</h2>
+              <p className="text-sm text-gray-600">Call settings coming soon...</p>
+            </div>
           )}
+          {activeTab === "analytics" && (
+            <div className="bg-white p-4 rounded-b-md shadow space-y-8">
 
-
-
-          {Object.entries(agent?.tasks?.[0]?.tools_config?.api_tools?.tools_params || {}).map(
-            ([key, config]) => {
-              const num = config?.param?.call_transfer_number;
-              return (
-                num && (
-                  <p key={key} className="flex items-center text-sm text-gray-700 mt-1">
-                    <strong className="mr-1">Transfer call for:</strong>
-                    <span className="text-gray-900 font-medium mr-2">{num}</span>
-                    <button
-                      onClick={() => handleSavePhoneTool(true, key)}
-                      className="text-red-500 hover:text-red-700"
-                      title="Delete"
+              {/* Call Transfer Tool */}
+              <div>
+                <h2 className="text-xl font-bold border-b pb-1 mb-4">Call Transfer Tool</h2>
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Country Code */}
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">Country Code</label>
+                    <select
+                      className="w-full border p-2 rounded text-sm"
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
                     >
-                      <FaTrash />
+                      <option value="+91">+91 (India)</option>
+                      <option value="+1">+1 (US)</option>
+                    </select>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input
+                      type="text"
+                      className="w-full border p-2 rounded text-sm"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="Enter number without country code"
+                    />
+                  </div>
+
+                  {/* Department Dropdown */}
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">Select Department</label>
+                    <select
+                      className="w-full border p-2 rounded text-sm"
+                      value={selectedDepartment}
+                      onChange={(e) => setSelectedDepartment(e.target.value)}
+                    >
+                      <option value="sales">Sales</option>
+                      <option value="technical">Technical</option>
+                      <option value="support">Support</option>
+                      <option value="custom">Add Custom Department</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Custom Description */}
+                {selectedDepartment === "custom" && !descriptionSaved && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Custom Description</label>
+                    <input
+                      type="text"
+                      className="w-full border p-2 rounded text-sm"
+                      value={customDescription}
+                      onChange={(e) => setCustomDescription(e.target.value)}
+                      placeholder="Enter custom description"
+                    />
+                    <button
+                      onClick={handleSaveCustomDescription}
+                      className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
+                    >
+                      Save Description
                     </button>
-                  </p>
-                )
-              );
-            }
+                  </div>
+                )}
+
+                <button
+                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-4"
+                  onClick={handleSavePhoneTool}
+                >
+                  Save Number
+                </button>
+
+                {/* Existing Tools */}
+                {isVapiAssistant && additionalDetails?.vapiTransferTools?.length > 0 && (
+                  additionalDetails.vapiTransferTools.map((tool) => (
+                    <p key={tool.id} className="flex items-center text-sm text-gray-700 mt-1">
+                      <strong className="mr-1">Transfer call for:</strong>
+                      <span className="text-gray-900 font-medium mr-2">{tool.number}</span>
+                      <button
+                        onClick={() => handleDeleteVapiTool(tool.id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    </p>
+                  ))
+                )}
+
+                {Object.entries(agent?.tasks?.[0]?.tools_config?.api_tools?.tools_params || {}).map(
+                  ([key, config]) => {
+                    const num = config?.param?.call_transfer_number;
+                    return (
+                      num && (
+                        <p key={key} className="flex items-center text-sm text-gray-700 mt-1">
+                          <strong className="mr-1">Transfer call for:</strong>
+                          <span className="text-gray-900 font-medium mr-2">{num}</span>
+                          <button
+                            onClick={() => handleSavePhoneTool(true, key)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Delete"
+                          >
+                            <FaTrash />
+                          </button>
+                        </p>
+                      )
+                    );
+                  }
+                )}
+              </div>
+
+              {/* Upload Files Section */}
+              <div>
+                <h2 className="text-xl font-bold border-b pb-1 mb-4">Upload Files</h2>
+
+                {existingPdfUrl?.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-gray-700 mb-1">Uploaded Files:</p>
+                    <ul className="space-y-2 text-sm">
+                      {existingPdfUrl.map((file, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 underline"
+                          >
+                            📄 {file.name || file.url.split("/").pop().replace(/^[^_]+_/, "")}
+                          </a>
+                          {file.uploadedAt && (
+                            <span className="text-gray-400 text-xs">
+                              ({new Date(file.uploadedAt).toLocaleString()})
+                            </span>
+                          )}
+                          <button
+                            onClick={() => handleDeletePDF(file)}
+                            className="text-red-600 hover:underline ml-2"
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files?.length) {
+                      setSelectedFiles(Array.from(files));
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
+                />
+
+                <button
+                  onClick={handleFileUpload}
+                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
+                >
+                  Upload Selected Files
+                </button>
+              </div>
+
+              {/* Google Meet Link Section */}
+              <div>
+                <h2 className="text-xl font-bold border-b pb-1 mb-4">Google Meet Link</h2>
+
+                {existingMeetLink ? (
+                  <div className="flex items-center gap-3 text-sm mb-2">
+                    <a
+                      href={existingMeetLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline break-all"
+                    >
+                      {existingMeetLink}
+                    </a>
+                    <button
+                      onClick={handleDeleteMeetLink}
+                      className="text-red-600 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={meetLink}
+                      onChange={(e) => setMeetLink(e.target.value)}
+                      placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                      className="w-full border p-2 rounded text-sm"
+                    />
+                    <button
+                      onClick={handleUploadMeetLink}
+                      className="bg-green-600 text-white px-4 py-2 rounded text-sm"
+                    >
+                      Save Link
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
+          {activeTab === "ws_broadcast" && (
+            <div className="bg-white p-4 rounded-b-md shadow space-y-4">
+              <h2 className="text-lg font-bold mb-2">WhatsApp Broadcast CSV Upload</h2>
 
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Upload Files (for tools)
-            </label>
+              <p className="text-sm text-gray-600 mb-2">
+                Upload a CSV file containing phone numbers to initiate a broadcast.
+              </p>
 
-            {/* Uploaded files section */}
-            {existingPdfUrl && existingPdfUrl.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-1">Uploaded Files:</p>
-                <ul className="space-y-2 text-sm">
-                  {existingPdfUrl.map((file, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        📄 {file.name || file.url.split("/").pop().replace(/^[^_]+_/, "")}
-                      </a>
-                      {file.uploadedAt && (
-                        <span className="text-gray-400 text-xs">
-                          ({new Date(file.uploadedAt).toLocaleString()})
-                        </span>
-                      )}
-                      <button
-                        onClick={() => handleDeletePDF(file)}
-                        className="text-red-600 hover:underline ml-2"
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              {/* Sample CSV download link */}
+              <a
+                href="/assets/ws_broadcast.csv"
+                download
+                className="inline-block text-sm text-blue-600 underline mb-2"
+              >
+                📥 Download Sample CSV
+              </a>
 
-            {/* Upload input always shown */}
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx,image/*"
-              multiple
-              onChange={(e) => {
-                const files = e.target.files;
-                if (files?.length) {
-                  setSelectedFiles(Array.from(files));
-                }
-              }}
-              className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
-            />
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
+                className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
+              />
 
-            <button
-              onClick={handleFileUpload}
-              className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
-            >
-              Upload Selected Files
-            </button>
-          </div>
+              <button
+                onClick={handleUploadWsBroadcastCsv}
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
+              >
+                Upload CSV
+              </button>
 
-
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Google Meet Link
-            </label>
-
-            {existingMeetLink ? (
-              <div className="flex items-center gap-3 text-sm mb-2">
-                <a
-                  href={existingMeetLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline break-all"
-                >
-                  {existingMeetLink}
-                </a>
-                <button
-                  onClick={handleDeleteMeetLink}
-                  className="text-red-600 hover:underline"
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={meetLink}
-                  onChange={(e) => setMeetLink(e.target.value)}
-                  placeholder="https://meet.google.com/xxx-xxxx-xxx"
-                  className="w-full border p-2 rounded text-sm"
-                />
-                <button
-                  onClick={handleUploadMeetLink}
-                  className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-                >
-                  Save Link
-                </button>
-              </div>
-            )}
-            
-          </div>
-        </div>
-
+              {selectedFiles.length > 0 && (
+                <p className="text-sm text-green-600 mt-2">
+                  📄 Selected: {selectedFiles.map((f) => f.name).join(", ")}
+                </p>
+              )}
+            </div>
+          )}
+        </>
       )}
-      {activeTab === "ws_broadcast" && (
-  <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-    <h2 className="text-lg font-bold mb-2">WhatsApp Broadcast CSV Upload</h2>
 
-    <p className="text-sm text-gray-600 mb-2">
-      Upload a CSV file containing phone numbers to initiate a broadcast.
-    </p>
-
-    <input
-      type="file"
-      accept=".csv"
-      onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
-      className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
-    />
-
-    <button
-      onClick={handleUploadWsBroadcastCsv}
-      className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
-    >
-      Upload CSV
-    </button>
-
-    {selectedFiles.length > 0 && (
-      <p className="text-sm text-green-600 mt-2">
-        📄 Selected: {selectedFiles.map((f) => f.name).join(", ")}
-      </p>
-    )}
-  </div>
-)}
-
-
-    </>
-  )}
-  
-  {alert.visible && (
+      {alert.visible && (
         <Alert
           type={alert.type}
           message={alert.message}
@@ -1509,6 +1391,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
           onConfirm={alert.onConfirm}
         />
       )}
-</div>
+    </div>
   );
 }

@@ -904,35 +904,71 @@ export default function Marketing() {
   useEffect(() => {
     const fetchVapiAssistants = async () => {
       try {
-        const mapRes = await fetch("/api/map/getUserAgents");
-        const { assistants } = await mapRes.json();
-
+        let assistantIds = [];
+        const cached = localStorage.getItem("assistant_ids");
+  
+        // Step 1: Load from cache if available
+        if (cached) {
+          assistantIds = JSON.parse(cached);
+          const placeholderAssistants = assistantIds.map(id => ({ id, name: "...loading" }));
+          setAssistants(placeholderAssistants);
+          setSelectedAssistant(placeholderAssistants[0]?.id || "");
+        }
+  
+        // Step 2: Fetch from API only if not cached
+        if (assistantIds.length === 0) {
+          const mapRes = await fetch("/api/map/getUserAgents");
+          const { assistants } = await mapRes.json();
+  
+          if (!Array.isArray(assistants)) throw new Error("Invalid assistant data");
+          assistantIds = assistants;
+          localStorage.setItem("assistant_ids", JSON.stringify(assistantIds));
+  
+          const placeholderAssistants = assistantIds.map(id => ({ id, name: "...loading" }));
+          setAssistants(placeholderAssistants);
+          setSelectedAssistant(placeholderAssistants[0]?.id || "");
+        }
+  
+        // Step 3: Resolve assistant names
         const assistantDetails = await Promise.all(
-          assistants.map(async (id) => {
-            const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
-              headers: {
-                Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
-              },
-            });
-            if (!res.ok) throw new Error(`Failed to fetch assistant ${id}`);
-            return await res.json();
+          assistantIds.map(async (id) => {
+            try {
+              const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
+                headers: {
+                  Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
+                },
+              });
+              if (!res.ok) throw new Error(`Failed to fetch assistant ${id}`);
+              return await res.json();
+            } catch (err) {
+              console.error(`❌ Error fetching assistant ${id}:`, err);
+              return null;
+            }
           })
         );
-
-        const cleaned = assistantDetails.map((a) => ({ id: a.id, name: a.name }));
+  
+        const cleaned = assistantDetails
+          .filter((a) => a !== null)
+          .map((a) => ({ id: a.id, name: a.name }));
+  
         setAssistants(cleaned);
         setSelectedAssistant(cleaned[0]?.id || "");
       } catch (err) {
         console.error("Failed to load Vapi agents", err);
         alert("Error loading Vapi agents");
+        setAssistants([]);
+        setSelectedAssistant("");
       }
     };
-
+  
     fetchVapiAssistants();
+  
+    // Load batch data
     fetchBatchesData()
       .then(setBatches)
       .catch(console.error);
   }, []);
+  
 
   // Filter batches based on selected assistant
   useEffect(() => {

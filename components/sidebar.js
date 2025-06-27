@@ -8,7 +8,42 @@ const Sidebar = ({ clientId }) => {
   const [storedClientId, setStoredClientId] = useState(clientId || null);
 
 
+  useEffect(() => {
+    const fetchVapiAssistants = async () => {
+      try {
+        const mapRes = await fetch("/api/map/getUserAgents");
+  
+        // Explicitly check for bad responses
+        if (!mapRes.ok) {
+          console.error("❌ /api/map/getUserAgents returned:", mapRes.status);
+          throw new Error("Failed to fetch assistant mapping");
+        }
+  
+        const { assistants } = await mapRes.json();
+  
+        if (!Array.isArray(assistants)) {
+          console.error("❌ Unexpected response:", assistants);
+          throw new Error("Assistant data is not an array");
+        }
+  
+        localStorage.setItem("assistant_ids", JSON.stringify(assistants));
+      } catch (err) {
+        console.error("❌ Failed to load Vapi agents:", err);
+  
+        // Only show alert if it's truly unexpected
+        if (typeof window !== "undefined") {
+          alert("Error loading Vapi agents. Please try again later.");
+        }
+      }
+    };
+  
+    fetchVapiAssistants();
+  }, []);
+  
+  
 
+  
+  
   useEffect(() => {
     // Check auth by calling your existing backend
     const checkAuth = async () => {
@@ -23,7 +58,9 @@ const Sidebar = ({ clientId }) => {
         const data = await res.json();
 
         if (!data.isVerified) {
-          router.push("/"); // redirect to login
+          router.push("/"); 
+          localStorage.removeItem("assistant_ids");
+          localStorage.removeItem("token");
         }
       } catch (err) {
         console.error("Error verifying token", err);
@@ -92,20 +129,20 @@ const Sidebar = ({ clientId }) => {
           </li>
           <li className="cursor-pointer flex items-center space-x-3 text-lg hover:bg-gray-200 p-3 rounded-lg">
             <Link
-              href="/agents/numbers"
-              className="flex items-center space-x-3"
-            >
-              <FaHashtag className="text-blue-500" />
-              <span>Numbers</span>
-            </Link>
-          </li>
-          <li className="cursor-pointer flex items-center space-x-3 text-lg hover:bg-gray-200 p-3 rounded-lg">
-            <Link
               href="/agents/Marketing"
               className="flex items-center space-x-3"
             >
               <FaAd className="text-blue-500" />
               <span>Marketing Campaigns</span>
+            </Link>
+          </li>
+          <li className="cursor-pointer flex items-center space-x-3 text-lg hover:bg-gray-200 p-3 rounded-lg">
+            <Link
+              href="/agents/WhatsAppBroadcast"
+              className="flex items-center space-x-3"
+            >
+              <FaAd className="text-blue-500" />
+              <span>WhatsApp Campaigns</span>
             </Link>
           </li>
           <li className="cursor-pointer flex items-center space-x-3 text-lg hover:bg-gray-200 p-3 rounded-lg">

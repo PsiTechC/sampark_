@@ -1,7 +1,3 @@
-
-
-
-
 import { useState, useEffect } from 'react';
 
 const PasswordResetModal = ({ isOpen, onClose, onSave, clientId }) => {
