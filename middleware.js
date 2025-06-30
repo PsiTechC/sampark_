@@ -25,8 +25,8 @@ export async function middleware(req) {
   const token = req.cookies.get('token')?.value;
 
   if (!token) {
-    // Redirect to root if not authenticated
-    return NextResponse.redirect(new URL('/', req.url));
+    // https://convis.ai
+    return NextResponse.redirect(new URL('https://convis.ai', req.url));
   }
 
   try {
@@ -34,7 +34,7 @@ export async function middleware(req) {
     return NextResponse.next();
   } catch (err) {
     console.error('JWT verification failed:', err.message);
-    return NextResponse.redirect(new URL('/', req.url));
+    return NextResponse.redirect(new URL('https://convis.ai', req.url));
   }
 }
 

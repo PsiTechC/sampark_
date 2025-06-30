@@ -3,7 +3,6 @@ import Sidebar from "@/components/sidebar";
 import AgentsPage from "../../components/agents/agents_page";
 import EditAgent from "../../components/agents/EditAgents";
 import CallAgentModal from "../../components/agents/CallAgentModal";
-import CallLogs from "../../components/call_logs";
 import PhoneNumbers from "../agents/numbers";
 import ClientDashboard from "../agents/ClientDashboard";
 import Marketing from "../agents/Marketing";
@@ -11,7 +10,6 @@ import ConnectCalender from "../agents/ConnectCalender";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faCopy, faArrowDownAZ, faArrowUpAZ, faChevronDown, faPen } from "@fortawesome/free-solid-svg-icons";
 import Alert from "../../components/ui/Alerts";
-import Loader from "../../components/ui/Loader";
 
 const convertVapiAssistantToAgent = (assistant) => ({
   id: assistant.id,
@@ -234,15 +232,15 @@ export default function Dashboard() {
         setAlert({
           visible: true,
           type: "success",
-          message: "✅ Vapi assistant deleted successfully.",
+          message: "✅ Assistant deleted successfully.",
           isConfirm: false,
           onConfirm: null,
         });
       } else {
-        console.error("Failed to delete Vapi assistant");
+        console.error("Failed to delete assistant");
       }
     } catch (err) {
-      console.error("Error deleting Vapi assistant:", err);
+      console.error("Error deleting assistant:", err);
       setAlert({
         visible: true,
         type: "error",
@@ -435,7 +433,7 @@ export default function Dashboard() {
                         setAlert({
                           visible: true,
                           type: "confirm",
-                          message: "Are you sure you want to delete this Vapi assistant?",
+                          message: "Are you sure you want to delete this assistant?",
                           isConfirm: true,
                           onConfirm: () => {
                             handleDeleteVapiAssistant(assistant.id);

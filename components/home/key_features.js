@@ -184,7 +184,7 @@ import React from 'react';
 
 export default function KeyFeatures() {
   return (
-    <div className="container mx-auto py-20 px-24 mb-12"> {/* Increased px from 12 to 24 for more space on the sides */}
+    <div className="container mx-auto py-20 px-24 mb-12">
       <div className="-mx-4 flex flex-wrap">
         <div className="w-full px-4">
           <div className="mx-auto mb-[60px] max-w-[600px] text-center">

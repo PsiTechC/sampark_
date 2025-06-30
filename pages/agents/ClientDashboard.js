@@ -12,6 +12,10 @@ function ClientDashboard() {
   const [selectedAgentCost, setSelectedAgentCost] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState("total");
   const [costBreakdown, setCostBreakdown] = useState(null);
+  const [agentCallData, setAgentCallData] = useState({});
+  const [overallCost, setOverallCost] = useState(0);
+
+
 
   // Fetch agents
 
@@ -20,7 +24,7 @@ function ClientDashboard() {
       try {
         const mapRes = await fetch("/api/map/getUserAgents");
         const { assistants } = await mapRes.json();
-  
+
         const assistantDetails = await Promise.all(
           assistants.map(async (id) => {
             const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
@@ -32,15 +36,15 @@ function ClientDashboard() {
             return await res.json();
           })
         );
-  
+
         const cleanedAgents = assistantDetails.map((a) => ({
           id: a.id,
           agent_name: a.name,
         }));
-  
+
         setAgents(cleanedAgents);
         setSelectedAgentId(cleanedAgents[0]?.id || "");
-  
+
         // Fetch sentiment one by one
         const sentimentSummaries = await Promise.all(
           assistants.map(async (id) => {
@@ -51,53 +55,59 @@ function ClientDashboard() {
             return summary ? { ...summary, agent_id: id } : null;
           })
         );
-  
+
         setSentimentData(sentimentSummaries.filter(Boolean));
+        setLoading(false);
       } catch (err) {
         console.error("Failed to load Vapi agents or sentiment", err);
         setError("Error loading Vapi agents or sentiment");
+        setLoading(false);
       }
     };
-  
+
     fetchVapiAssistantsAndSentiment();
   }, []);
-  
 
 
-  // Fetch analytics
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchAgentCallData = async () => {
+      const assistantIds = JSON.parse(localStorage.getItem("assistant_ids") || "[]");
+
+      if (!Array.isArray(assistantIds) || assistantIds.length === 0) {
+        console.warn("⚠️ No assistant IDs found in localStorage.");
+        return;
+      }
+
       try {
-        const res = await fetch("/api/clients/fetchAnalytics");
+        const queryParam = assistantIds.join(",");
+        const res = await fetch(`/api/clients/spendData?ids=${queryParam}`);
+        if (!res.ok) throw new Error("Failed to fetch calls");
+
         const data = await res.json();
-        setAnalyticsData(data.analytics || []);
+
+        // Construct agent-wise map
+        const callMap = {};
+        for (const item of data.results || []) {
+          callMap[item.assistantId] = {
+            totalCalls: item.call_count,
+            totalCost: item.total_cost_usd,
+            costBreakdown: item.cost_breakdown || {},
+          };
+        }
+
+        setAgentCallData(callMap);
+        setOverallCost(data.overall_total_cost_usd || 0);
       } catch (err) {
-        console.error("Failed to fetch analytics", err);
-        setError("Error fetching analytics");
+        console.error("❌ Error fetching assistant call data:", err.message);
       }
     };
-    fetchAnalytics();
+
+    fetchAgentCallData();
   }, []);
+
+
   const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-
-
-  // Fetch campaign sentiment summary
-  useEffect(() => {
-    const fetchCampaignSentiment = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/api/clients/batchSentimentAnalysis`);
-        const data = await res.json();
-        setCampaignSentiment(data.sentiment_summary || []);
-        setLoading(false);
-      } catch (err) {
-        console.error("Failed to fetch campaign sentiment", err);
-        setError("Error fetching campaign sentiment");
-        setLoading(false);
-      }
-    };
-    fetchCampaignSentiment();
-  }, []);
 
   const fetchAgentSpend = async (agentId) => {
     try {
@@ -114,11 +124,17 @@ function ClientDashboard() {
   };
 
   const getDisplayedCost = () => {
-    if (!selectedAgentId || !costBreakdown) return selectedAgentCost ?? "Loading...";
-    if (selectedPeriod === "total") return selectedAgentCost;
-    return costBreakdown?.[selectedPeriod] ?? 0;
-  };
+    if (!selectedAgentId) return "Loading...";
+  
+    const value = selectedPeriod === "total"
+      ? selectedAgentCost
+      : costBreakdown?.[selectedPeriod];
 
+    if (value === undefined || value === null) return "$0.00";
+  
+    return `$${value}`;
+  };
+  
   const PERIOD_OPTIONS = [
     { label: "Total Cost", key: "total" },
     { label: "Last 7D", key: "last_7_days" },
@@ -129,7 +145,8 @@ function ClientDashboard() {
 
   // Merge agent-wide analytics and sentiment
   const enrichedAgents = agents.map((agent) => {
-    const analytics = analyticsData.find((a) => a.id === agent.id) || {};
+    const analytics = agentCallData[agent.id] || {};
+
     const sentiment = sentimentData.find((s) => s.agent_id === agent.id) || {};
     const campaign = campaignSentiment.find((c) => c.agent_id === agent.id) || {
       total_batches: 0,
@@ -158,7 +175,7 @@ function ClientDashboard() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-grow p-6 flex flex-col">
-      <div className="mb-6">
+        <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-1">Money Spent</h2>
           <div className="mb-4">
             <label className="text-sm text-gray-700 mr-2">Select Agent:</label>
@@ -168,12 +185,18 @@ function ClientDashboard() {
               onChange={(e) => {
                 const agentId = e.target.value;
                 setSelectedAgentId(agentId);
-                if (agentId) {
-                  fetchAgentSpend(agentId); 
+                setSelectedPeriod("total");
+              
+                if (agentId && agentCallData[agentId]) {
+                  const { totalCost, costBreakdown } = agentCallData[agentId];
+                  setSelectedAgentCost(totalCost);
+                  setCostBreakdown(costBreakdown || {});
                 } else {
                   setSelectedAgentCost(null);
+                  setCostBreakdown(null);
                 }
               }}
+              
 
             >
               <option value="">-- Select Agent --</option>
@@ -187,16 +210,28 @@ function ClientDashboard() {
 
           <p className="text-lg text-gray-600 mb-4">
             {selectedAgentId
-              ? `${PERIOD_OPTIONS.find(p => p.key === selectedPeriod)?.label || "Total"}: $${getDisplayedCost()}`
+              ? `${PERIOD_OPTIONS.find(p => p.key === selectedPeriod)?.label || "Total"}: ${getDisplayedCost()}`
               : "Select an agent to view cost"}
           </p>
-
 
           <div className="flex flex-wrap gap-2 mb-4">
             {PERIOD_OPTIONS.map(({ label, key }) => (
               <button
                 key={key}
-                onClick={() => setSelectedPeriod(key)}
+                onClick={() => {
+                  setSelectedPeriod(key);
+                  if (selectedAgentId && agentCallData[selectedAgentId]) {
+                    const { totalCost, costBreakdown } = agentCallData[selectedAgentId];
+                    const cost =
+                      key === "total"
+                        ? totalCost
+                        : costBreakdown?.[key] ?? 0;
+              
+                    setSelectedAgentCost(cost);
+                  }
+                }}
+                
+                
                 className={`px-3 py-1 text-sm border rounded-md shadow-sm transition ${selectedPeriod === key ? "bg-blue-600 text-white" : "bg-white border-gray-300 hover:bg-gray-100"
                   }`}
               >
@@ -204,7 +239,6 @@ function ClientDashboard() {
               </button>
             ))}
           </div>
-          {/* Legend */}
           <div className="flex items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-300"></span> Positive</div>
             <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500"></span> Negative</div>

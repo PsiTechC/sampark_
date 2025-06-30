@@ -1,8 +1,8 @@
 // C:/botGIT/botGIT-main/components/sidebar.js
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FaUserCircle, FaUserPlus, FaHashtag, FaCalendar, FaAd, FaSignOutAlt , } from "react-icons/fa";
-import { FaSquarePhone, FaChartSimple, FaChartBar  } from "react-icons/fa6";
+import { FaUserCircle, FaUserPlus, FaHashtag, FaCalendar, FaAd, FaSignOutAlt, } from "react-icons/fa";
+import { FaSquarePhone, FaChartSimple, FaChartBar } from "react-icons/fa6";
 import { useRouter } from "next/router";
 const Sidebar = ({ clientId }) => {
   const [storedClientId, setStoredClientId] = useState(clientId || null);
@@ -12,40 +12,39 @@ const Sidebar = ({ clientId }) => {
     const fetchVapiAssistants = async () => {
       try {
         const mapRes = await fetch("/api/map/getUserAgents");
-  
+
         // Explicitly check for bad responses
         if (!mapRes.ok) {
           console.error("❌ /api/map/getUserAgents returned:", mapRes.status);
           throw new Error("Failed to fetch assistant mapping");
         }
-  
+
         const { assistants } = await mapRes.json();
-  
+
         if (!Array.isArray(assistants)) {
           console.error("❌ Unexpected response:", assistants);
           throw new Error("Assistant data is not an array");
         }
-  
+
         localStorage.setItem("assistant_ids", JSON.stringify(assistants));
       } catch (err) {
         console.error("❌ Failed to load Vapi agents:", err);
-  
+
         // Only show alert if it's truly unexpected
         if (typeof window !== "undefined") {
           alert("Error loading Vapi agents. Please try again later.");
         }
       }
     };
-  
+
     fetchVapiAssistants();
   }, []);
-  
-  
 
-  
-  
+
+
+
+
   useEffect(() => {
-    // Check auth by calling your existing backend
     const checkAuth = async () => {
       try {
         const res = await fetch("/api/verify-token", {
@@ -57,20 +56,33 @@ const Sidebar = ({ clientId }) => {
 
         const data = await res.json();
 
+
+
         if (!data.isVerified) {
-          router.push("/"); 
-          localStorage.removeItem("assistant_ids");
           localStorage.removeItem("token");
+          localStorage.removeItem("assistant_ids");
+          localStorage.removeItem("clientId");
+          // https://convis.ai
+          router.push("https://convis.ai");
         }
+
+        if (!document.cookie.includes("token")) {
+          localStorage.removeItem("assistant_ids");
+          return;
+        }
+
       } catch (err) {
         console.error("Error verifying token", err);
-        router.push("/"); // fallback redirect
+        localStorage.removeItem("token");
+        localStorage.removeItem("assistant_ids");
+        localStorage.removeItem("clientId");
+        // https://convis.ai
+        router.push("https://convis.ai");
       }
     };
 
     checkAuth();
 
-    // Optional: also restore localStorage-based clientId
     const clientIdFromStorage = localStorage.getItem("clientId");
     if (clientIdFromStorage) {
       setStoredClientId(clientIdFromStorage);
@@ -90,7 +102,7 @@ const Sidebar = ({ clientId }) => {
     await fetch("/api/logout"); // Invalidate cookie server-side
     router.push("/");
   };
-  
+
 
   return (
     <nav className="w-56 bg-white text-gray-900 shadow-lg p-5 flex flex-col justify-between min-h-screen border-r border-gray-300">
@@ -145,7 +157,7 @@ const Sidebar = ({ clientId }) => {
               <span>WhatsApp Campaigns</span>
             </Link>
           </li>
-          <li className="cursor-pointer flex items-center space-x-3 text-lg hover:bg-gray-200 p-3 rounded-lg">
+          {/* <li className="cursor-pointer flex items-center space-x-3 text-lg hover:bg-gray-200 p-3 rounded-lg">
             <Link
               href="/agents/analytics"
               className="flex items-center space-x-3"
@@ -154,7 +166,7 @@ const Sidebar = ({ clientId }) => {
 
               <span>Marketing Analytics</span>
             </Link>
-          </li>
+          </li> */}
 
           <li className="cursor-pointer flex items-center space-x-3 text-lg hover:bg-gray-200 p-3 rounded-lg">
             <Link

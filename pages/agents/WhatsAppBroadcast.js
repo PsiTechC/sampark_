@@ -105,6 +105,15 @@ export default function WhatsAppBroadcast() {
             <div className="flex-grow p-6">
                 <div className="bg-white p-6 rounded shadow max-w-xl mx-auto">
                     <h2 className="text-lg font-bold mb-4">WhatsApp Broadcast CSV Upload</h2>
+                    {/* Sample CSV download link */}
+                    <a
+                        href="/assets/whatsApp_broadcast_sample_file.csv"
+                        download
+                        className="inline-block text-sm text-blue-600 underline mb-2"
+                    >
+                        📥 Download Sample CSV
+                    </a>
+
 
                     <label className="block text-sm font-medium text-gray-700 mb-1">Select Assistant</label>
                     <select
@@ -145,10 +154,10 @@ export default function WhatsAppBroadcast() {
                     {alert.visible && (
                         <div
                             className={`mt-4 text-sm px-4 py-2 rounded ${alert.type === "success"
-                                    ? "bg-green-100 text-green-800"
-                                    : alert.type === "error"
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-yellow-100 text-yellow-800"
+                                ? "bg-green-100 text-green-800"
+                                : alert.type === "error"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
                                 }`}
                         >
                             {alert.message}

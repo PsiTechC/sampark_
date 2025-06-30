@@ -17,7 +17,6 @@ const tabs = [
   { id: "knowledge", label: "Knowledge Base", icon: <FaBrain /> },
   { id: "voice", label: "Voice", icon: <FaVolumeUp /> },
   { id: "analytics", label: "Tools", icon: <FaChartLine /> },
-  { id: "ws_broadcast", label: "WhatsApp Broadcast", icon: <FaPhone /> },
 ];
 
 
@@ -842,50 +841,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
   };
 
 
-  const handleUploadWsBroadcastCsv = async () => {
-    setLoading(true);
-
-    if (!selectedFiles.length) {
-      setAlert({
-        type: "warning",
-        message: "⚠️ Please select a CSV file to upload.",
-        visible: true,
-      });
-      setLoading(false);
-      return;
-    }
-
-    const formData = new FormData();
-    selectedFiles.forEach((file) => formData.append("file", file));
-    formData.append("assistantId", agentId);
-    try {
-      const res = await fetch(`/api/ws_broadcast/upload_csv_ws`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Upload failed");
-      }
-
-      setAlert({
-        type: "success",
-        message: `✅ CSV uploaded successfully! Saved as: ${data.fileName}`,
-        visible: true,
-      });
-    } catch (err) {
-      setAlert({
-        type: "error",
-        message: "❌ Upload failed: " + err.message,
-        visible: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
 
 
   return (
@@ -898,7 +853,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
       {!loading && (
         <>
-          <div className="flex items-center space-x-2 border-b border-gray-200 mb-4">
+          <div className="flex  justify-evenly items-center space-x-2 border-b border-gray-200 mb-4">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
 
@@ -1135,6 +1090,10 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
               {/* Call Transfer Tool */}
               <div>
                 <h2 className="text-xl font-bold border-b pb-1 mb-4">Call Transfer Tool</h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  Transfers calls to the configured number when a user asks to speak with a human or a specific department such as Sales, Technical, or a custom team.
+                </p>
+
                 <div className="flex flex-col md:flex-row gap-4">
                   {/* Country Code */}
                   <div className="flex-1">
@@ -1198,7 +1157,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
                 )}
 
                 <button
-                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-4"
+                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-4 mb-6"
                   onClick={handleSavePhoneTool}
                 >
                   Save Number
@@ -1243,9 +1202,11 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
                 )}
               </div>
 
-              {/* Upload Files Section */}
               <div>
                 <h2 className="text-xl font-bold border-b pb-1 mb-4">Upload Files</h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  Automatically sends the uploaded PDF and Meet link when a user requests a brochure or books an appointment, and adds the link to your connected calendar.
+                </p>
 
                 {existingPdfUrl?.length > 0 && (
                   <div className="mb-4">
@@ -1341,44 +1302,6 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
             </div>
           )}
 
-          {activeTab === "ws_broadcast" && (
-            <div className="bg-white p-4 rounded-b-md shadow space-y-4">
-              <h2 className="text-lg font-bold mb-2">WhatsApp Broadcast CSV Upload</h2>
-
-              <p className="text-sm text-gray-600 mb-2">
-                Upload a CSV file containing phone numbers to initiate a broadcast.
-              </p>
-
-              {/* Sample CSV download link */}
-              <a
-                href="/assets/ws_broadcast.csv"
-                download
-                className="inline-block text-sm text-blue-600 underline mb-2"
-              >
-                📥 Download Sample CSV
-              </a>
-
-              <input
-                type="file"
-                accept=".csv"
-                onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
-                className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer p-2"
-              />
-
-              <button
-                onClick={handleUploadWsBroadcastCsv}
-                className="bg-blue-600 text-white px-4 py-2 rounded text-sm mt-2"
-              >
-                Upload CSV
-              </button>
-
-              {selectedFiles.length > 0 && (
-                <p className="text-sm text-green-600 mt-2">
-                  📄 Selected: {selectedFiles.map((f) => f.name).join(", ")}
-                </p>
-              )}
-            </div>
-          )}
         </>
       )}
 

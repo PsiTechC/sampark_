@@ -1230,7 +1230,7 @@ export default function Marketing() {
                   onClick={handleConfirmUpload}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition"
                 >
-                  Confirm Upload
+                  Upload
                 </button>
               </div>
             </div>
@@ -1278,8 +1278,8 @@ export default function Marketing() {
               <th>Run Now</th>
               <th>Schedule Later</th>
               <th>Stop</th>
-              <th>Created</th>
-              <th className="p-2">Time</th>
+              <th>Report</th>
+              <th className="p-2">Time Created</th>
             </tr>
           </thead>
           <tbody>

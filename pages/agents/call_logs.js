@@ -597,7 +597,9 @@ export default function CallLogs() {
                       const isVapi = platform === "vapi";
                       const callId = log.callId || log.id;
                       const timestamp = formatTimestampByTimezone(log.timestamp || log.createdAt || log.created_at, timezone);
-                      const duration = log.duration?.toFixed(1) || "N/A";
+                      const duration = (log.startedAt && log.endedAt)
+                        ? ((new Date(log.endedAt) - new Date(log.startedAt)) / 1000).toFixed(1)
+                        : "N/A";
                       const direction = log.type?.includes("inbound") ? "Inbound"
                         : log.type?.includes("outbound") ? "Outbound"
                           : log.telephony_data?.call_type || "N/A";
@@ -637,45 +639,45 @@ export default function CallLogs() {
                             )}
                           </td>
                           <td className="border px-4 py-2 whitespace-normal text-gray-800 leading-snug text-sm">
-  {(() => {
-    const userData = userDataMap[callId];
-    if (!userData) return "—";
+                            {(() => {
+                              const userData = userDataMap[callId];
+                              if (!userData) return "—";
 
-    const allowedKeys = ["name", "email", "appointmentDate", "purpose"];
-    const entries = Object.entries(userData).filter(
-      ([key, value]) => allowedKeys.includes(key) && value && value !== "-"
-    );
+                              const allowedKeys = ["name", "email", "appointmentDate", "purpose"];
+                              const entries = Object.entries(userData).filter(
+                                ([key, value]) => allowedKeys.includes(key) && value && value !== "-"
+                              );
 
-    const formatDate = (raw) => {
-      const date = new Date(raw);
-      return isNaN(date.getTime())
-        ? raw
-        : date.toLocaleString("en-IN", {
-            weekday: "short",
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-    };
+                              const formatDate = (raw) => {
+                                const date = new Date(raw);
+                                return isNaN(date.getTime())
+                                  ? raw
+                                  : date.toLocaleString("en-IN", {
+                                    weekday: "short",
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  });
+                              };
 
-    const capitalize = (str) => {
-      return typeof str === "string" && str.length > 0
-        ? str.charAt(0).toUpperCase() + str.slice(1)
-        : str;
-    };
+                              const capitalize = (str) => {
+                                return typeof str === "string" && str.length > 0
+                                  ? str.charAt(0).toUpperCase() + str.slice(1)
+                                  : str;
+                              };
 
-    return entries.length === 0
-      ? "—"
-      : entries.map(([key, value]) => (
-          <div key={key}>
-            <strong>{capitalize(key)}:</strong>{" "}
-            {key === "appointmentDate" ? formatDate(value) : capitalize(value)}
-          </div>
-        ));
-  })()}
-</td>
+                              return entries.length === 0
+                                ? "—"
+                                : entries.map(([key, value]) => (
+                                  <div key={key}>
+                                    <strong>{capitalize(key)}:</strong>{" "}
+                                    {key === "appointmentDate" ? formatDate(value) : capitalize(value)}
+                                  </div>
+                                ));
+                            })()}
+                          </td>
 
 
                         </tr>
@@ -796,7 +798,7 @@ export default function CallLogs() {
                 Close
               </button>
 
-              <select
+              {/* <select
                 value={selectedAgentId}
                 onChange={(e) => setSelectedAgentId(e.target.value)}
                 className="..."
@@ -806,7 +808,7 @@ export default function CallLogs() {
                     {agent.agent_name}
                   </option>
                 ))}
-              </select>
+              </select> */}
 
             </div>
           </div>
