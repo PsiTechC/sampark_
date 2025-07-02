@@ -13,6 +13,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ message: 'clientID is required' });
   }
 
+  const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(clientID);
+  if (!isValidObjectId) {
+    console.error(`[GET CLIENT] Invalid ObjectId format for clientID: ${clientID}`);
+    return res.status(400).json({ message: 'Invalid clientID format' });
+  }
+
+  
   if (req.method === 'GET') {
     try {
       const { db } = await connectToDatabase();

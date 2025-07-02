@@ -162,8 +162,8 @@ export default async function handler(req, res) {
           const readableToday = DateTime.fromISO(today).setZone(userTimeZone).toFormat("cccc, d LLLL yyyy, hh:mm a");
           console.log(`🕒 Local 'today' for call ${callId}: ${readableToday} (${userTimeZone})`);
 
-          console.log(`🧾 Call ${call.id} sample keys:`, Object.keys(call));
-          console.log(`💲 Cost for call ${call.id}:`, call.cost);
+          // console.log(`🧾 Call ${call.id} sample keys:`, Object.keys(call));
+          // console.log(`💲 Cost for call ${call.id}:`, call.cost);
 
 
           const callPayload = {
