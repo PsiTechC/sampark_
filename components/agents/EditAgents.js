@@ -27,6 +27,31 @@ const vapiVoices = [
     description: "Warm, professional female voice with clear articulation"
   },
   {
+    id: "pGYsZruQzo8cpdFVZyJc",
+    name: "Smriti",
+    description: "Clear and graceful female voice with a polite tone"
+  },
+  {
+    id: "mCQMfsqGDT6IDkEKR20a",
+    name: "Jeevan",
+    description: "Confident and friendly male voice with a natural Indian accent"
+  },
+  {
+    id: "MF4J4IDTRo0AxOO4dpFR",
+    name: "Devi",
+    description: "Soft-spoken female voice with a calm and warm delivery"
+  },
+  {
+    id: "Hmz0MdhDqv9vPpSMfDkh",
+    name: "Bobby",
+    description: "Energetic and approachable male voice with a modern tone"
+  },
+  {
+    id: "Z55vjGJIfg7PlYv2c1k6",
+    name: "Daksh",
+    description: "Authoritative yet friendly male voice with clear enunciation"
+  },
+  {
     id: "burt-11labs",
     name: "Burt",
     description: "Deep, authoritative male voice with rich tones"
@@ -50,16 +75,6 @@ const vapiVoices = [
     id: "marissa-11labs",
     name: "Marissa",
     description: "Bright, engaging female voice with energetic delivery"
-  },
-  {
-    id: "matilda-11labs",
-    name: "Matilda",
-    description: "Warm, nurturing female voice with encouraging tone"
-  },
-  {
-    id: "mrb-11labs",
-    name: "MrB",
-    description: "Dynamic, expressive male voice with character"
   },
   {
     id: "myra-11labs",
@@ -98,10 +113,30 @@ const vapiVoices = [
   }
 ];
 
+const SAMPLE_TEXTS = {
+  "andrea-11labs": "Hi, I'm Andrea, a warm and professional voice with clear articulation.",
+  "burt-11labs": "Hello, I'm Burt. My deep and authoritative tone makes every word count.",
+  "drew-11labs": "Hi there! I'm Drew, a friendly and conversational voice for any message.",
+  "joseph-11labs": "Greetings, I'm Joseph. Confident, smooth, and always on point.",
+  "mark-11labs": "Hi, I'm Mark. Clear and articulate — perfect for storytelling and narration.",
+  "marissa-11labs": "Hey! I'm Marissa, bright and full of energy. Let's make your content pop.",
+  "myra-11labs": "Good day, I'm Myra. Sophisticated, elegant, and refined for high-class delivery.",
+  "paul-11labs": "Hey, I’m Paul. Versatile and natural — I fit into all kinds of content.",
+  "paula-11labs": "Hi, I’m Paula. Friendly and approachable — perfect for welcoming messages.",
+  "phillip-11labs": "Hello, I'm Phillip. Mature and distinguished, with a voice that commands respect.",
+  "ryan-11labs": "What's up? I'm Ryan — young, energetic, and ready to go!",
+  "sarah-11labs": "Hi, I'm Sarah. Clear, neutral, and perfect for professional communication.",
+  "steve-11labs": "Hello, I'm Steve. Trustworthy, reliable, and steady — your go-to voice for calm delivery.",
+
+  "pGYsZruQzo8cpdFVZyJc": "Namaste, I'm Smriti — clear and graceful, here to assist you.",
+  "mCQMfsqGDT6IDkEKR20a": "Hello, I'm Jeevan. Confident, friendly, and naturally Indian in tone.",
+  "MF4J4IDTRo0AxOO4dpFR": "Hi, I'm Devi. Calm and comforting, ready to guide you through.",
+  "Hmz0MdhDqv9vPpSMfDkh": "Hey there! I'm Bobby — energetic, modern, and always approachable.",
+  "Z55vjGJIfg7PlYv2c1k6": "Hello, I’m Daksh. Clear, assertive, and ready to lead the conversation."
+};
 
 
 
-// Named export for EditAgent component
 export function EditAgent({ agent, fetchAgents, agentId }) {
   const [formData, setFormData] = useState({
     agent_name: agent.agent_name,
@@ -180,6 +215,20 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
 
 
 
+  const playPreview = async (voiceId) => {
+    const text = SAMPLE_TEXTS[voiceId] || "Hi, I’m a sample voice from ElevenLabs.";
+    try {
+      const audio = new Audio(`/api/voices/voice-preview?voiceId=${voiceId}&text=${encodeURIComponent(text)}`);
+      await audio.play();
+    } catch (err) {
+      console.error("❌ Error playing voice preview:", err);
+      setAlert({
+        type: "error",
+        message: "❌ Failed to play preview: " + err.message,
+        visible: true,
+      });
+    }
+  };
 
 
   const handleKnowledgeBase = async () => {
@@ -1069,6 +1118,21 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
                 })}
               </select>
 
+              {/* Play Sample Preview */}
+              {isVapiAssistant && voice && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => playPreview(voice)}
+                    className="bg-gray-100 px-3 py-1 rounded text-sm border"
+                  >
+                    ▶️ Play Preview
+                  </button>
+                  <span className="text-sm text-gray-500">
+                    {vapiVoices.find((v) => v.id === voice)?.name}
+                  </span>
+                </div>
+              )}
+
               <button
                 className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
                 onClick={handleVoiceSave}
@@ -1077,6 +1141,7 @@ export default function ManageAgent({ agent, fetchAgents, agentId, isVapiAssista
               </button>
             </div>
           )}
+
 
           {activeTab === "call" && (
             <div className="bg-white p-4 rounded-b-md shadow">

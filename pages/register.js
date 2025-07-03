@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
-import LoginComponent from '../components/verification_components/LoginComponent'; // Assuming LoginComponent exists for handling login
-import VerifyEmail from '../components/verification_components/VerifyEmail'; // Import VerifyEmailComponent
+import LoginComponent from '../components/verification_components/LoginComponent'; 
+import VerifyEmail from '../components/verification_components/VerifyEmail'; 
 
 const Register = () => {
   const [email, setEmail] = useState('');

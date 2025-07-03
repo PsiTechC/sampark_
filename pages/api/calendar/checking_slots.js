@@ -186,7 +186,6 @@
 // }
 
 
-
 import { connectToDatabase } from "../../../lib/db";
 import CorsMiddleware from "../../../lib/cors-middleware";
 import { sendWhatsAppNotification } from '../../../lib/appointment_noti/sendWhatsAppNotification'
@@ -212,65 +211,65 @@ export default async function handler(req, res) {
     for (const slotEntry of userSlots) {
       const phone = slotEntry.phoneNumber.replace("+", "").replace(",", "").trim();
 
-      const allResponses = await whatsappResponsesCollection
-        .find({ from: phone })
-        .sort({ createdAt: -1 })
-        .toArray();
-
+      const whatsappMessageId = slotEntry.whatsappMessageId;
+      if (!whatsappMessageId) {
+        console.warn(`⚠️ No whatsappMessageId found for slot entry with phone ${phone}`);
+        continue;
+      }
+      
+      const responseDoc = await whatsappResponsesCollection.findOne({ context_message_id: whatsappMessageId });
+      
+      if (!responseDoc) {
+        console.warn(`⚠️ No WhatsApp response found for message ID: ${whatsappMessageId}`);
+        continue;
+      }
+      
       let selected = null;
-      let selectedResponse = null;
-
-      for (const response of allResponses) {
-        let parsed;
-        try {
-          parsed = JSON.parse(response.raw_response_json);
-        } catch (err) {
-          console.warn(`⚠️ Invalid JSON in response for ${phone}, skipping`);
-          continue;
-        }
-
+      try {
+        const parsed = JSON.parse(responseDoc.raw_response_json);
+      
         console.log(`🔍 Checking parsed response for ${phone}:`, parsed);
-
+      
         const hasEmail = Object.values(parsed).some(
           (val) => typeof val === "string" && val.includes("@")
         );
-
+      
         if (hasEmail) {
           console.log(`✉️ Skipping response with email for ${phone}`);
           continue;
         }
-
+      
         const slotValue = Object.values(parsed).find(
           (val) =>
             typeof val === "string" &&
             /^([0-4])_Slot_([1-5])$/.test(val)
         );
-
+      
         console.log(`🔎 Matched slot value for ${phone}:`, slotValue);
-
+      
         if (slotValue) {
           const match = slotValue.match(/^([0-4])_Slot_([1-5])$/);
           if (match && parseInt(match[1]) === parseInt(match[2]) - 1) {
             selected = parseInt(match[2], 10) - 1; // 0-based
-            selectedResponse = response;
             console.log(`✅ Selected slot index ${selected} for ${phone}`);
-            break;
           } else {
             console.warn(`⚠️ Slot index mismatch in value ${slotValue} for ${phone}`);
           }
         } else {
           console.warn(`⚠️ No slot pattern matched in response for ${phone}`);
         }
+      } catch (err) {
+        console.warn(`⚠️ Invalid JSON in response for ${phone}:`, err.message);
       }
-
-
+      
       if (selected === null) {
         console.warn(`⚠️ No valid slot selection found for ${phone}`);
         continue;
       }
+      
 
 
-      console.log(`📦 Parsed response for ${phone}:`, selectedResponse.raw_response_json);
+      console.log(`📦 Parsed response for ${phone}:`, responseDoc.raw_response_json);
       console.log(`🎯 Selected slot:`, selected);
 
       const selectedSlot = slotEntry.suggestedSlots[selected];
@@ -359,7 +358,8 @@ export default async function handler(req, res) {
         await userSlotsCollection.deleteOne({ _id: slotEntry._id });
 
         // ✅ Delete the WhatsApp response document that was used
-        await whatsappResponsesCollection.deleteOne({ _id: selectedResponse._id });
+        await whatsappResponsesCollection.deleteOne({ _id: responseDoc._id });
+
 
         console.log(`✅ Event created and cleaned up for ${phone}`);
       } else {

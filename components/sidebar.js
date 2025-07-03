@@ -99,8 +99,8 @@ const Sidebar = ({ clientId }) => {
 
   const router = useRouter();
   const handleLogout = async () => {
-    await fetch("/api/logout"); // Invalidate cookie server-side
-    router.push("/");
+    await fetch("/api/logout"); 
+    router.push("https://convis.ai");
   };
 
 

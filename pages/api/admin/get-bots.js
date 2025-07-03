@@ -1,3 +1,4 @@
+// /api/admin/get-bots
 import { connectToDatabase } from '../../../lib/db';
 import { ObjectId } from 'mongodb';
 

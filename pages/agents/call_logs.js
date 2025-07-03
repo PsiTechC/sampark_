@@ -3,6 +3,7 @@ import Sidebar from "@/components/sidebar"; // <-- Reuse your sidebar
 import { FaDownload, FaCloud, FaCalendarAlt, FaHourglassStart } from "react-icons/fa";
 import DatePicker from "react-datepicker";
 import { DateTime } from "luxon";
+import Dropdown from "@/components/admin/Dropdown";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -11,6 +12,9 @@ export default function CallLogs() {
   const agentId = "-";
 
   const [executions, setExecutions] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [platform, setPlatform] = useState("vapi");
@@ -148,62 +152,132 @@ export default function CallLogs() {
   }, []);
 
 
-  useEffect(() => {
-    const fetchVapiAgents = async () => {
-      try {
-        let assistantIds = [];
-        const cached = localStorage.getItem("assistant_ids");
+  // useEffect(() => {
+  //   const fetchVapiAgents = async () => {
+  //     try {
+  //       let assistantIds = [];
+  //       const cached = localStorage.getItem("assistant_ids");
 
+  //       if (cached) {
+  //         assistantIds = JSON.parse(cached);
+  //       } else {
+  //         const resMapping = await fetch("/api/map/getUserAgents");
+  //         const mappingData = await resMapping.json();
+  //         if (Array.isArray(mappingData.assistants)) {
+  //           assistantIds = mappingData.assistants;
+  //           localStorage.setItem("assistant_ids", JSON.stringify(assistantIds));
+  //         }
+  //       }
+
+  //       // Show loading placeholders
+  //       const placeholderVapi = assistantIds.map(id => ({ id, agent_name: "...loading" }));
+  //       setVapiAgents(placeholderVapi);
+  //       if (platform === "vapi") setAgents(placeholderVapi);
+
+  //       // Fetch real names
+  //       const fetchedDetails = await Promise.all(
+  //         assistantIds.map(async (id) => {
+  //           try {
+  //             const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
+  //               headers: {
+  //                 Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
+  //               },
+  //             });
+  //             if (!res.ok) throw new Error(`Failed to fetch assistant ${id}`);
+  //             return await res.json();
+  //           } catch (err) {
+  //             console.error(`❌ Error fetching Vapi assistant ${id}:`, err);
+  //             return null;
+  //           }
+  //         })
+  //       );
+
+  //       const finalVapiAgents = fetchedDetails
+  //         .filter((a) => a !== null)
+  //         .map((a) => ({ id: a.id, agent_name: a.name }));
+
+  //       setVapiAgents(finalVapiAgents);
+  //       if (platform === "vapi") {
+  //         setAgents(finalVapiAgents);
+  //         const firstId = finalVapiAgents[0]?.id || "-";
+  //         setSelectedAgentId(firstId); // ✅ Set only once, after final data is in
+  //       }
+  //     } catch (err) {
+  //       console.error("❌ Error fetching Vapi agents:", err);
+  //     }
+  //   };
+
+  //   fetchVapiAgents();
+  // }, []);
+
+  const fetchVapiAgents = async (clientId = null) => {
+    try {
+      let assistantIds = [];
+
+      if (clientId) {
+        // Admin flow
+        const res = await fetch(`/api/admin/get-bots?clientId=${clientId}`);
+        const data = await res.json();
+        if (!res.ok || !Array.isArray(data.bots)) throw new Error("Invalid agent response");
+        assistantIds = data.bots;
+      } else {
+        // Non-admin flow
+        const cached = localStorage.getItem("assistant_ids");
         if (cached) {
           assistantIds = JSON.parse(cached);
         } else {
           const resMapping = await fetch("/api/map/getUserAgents");
           const mappingData = await resMapping.json();
-          if (Array.isArray(mappingData.assistants)) {
-            assistantIds = mappingData.assistants;
-            localStorage.setItem("assistant_ids", JSON.stringify(assistantIds));
-          }
+          if (!Array.isArray(mappingData.assistants)) throw new Error("Mapping error");
+          assistantIds = mappingData.assistants;
+          localStorage.setItem("assistant_ids", JSON.stringify(assistantIds));
         }
-
-        // Show loading placeholders
-        const placeholderVapi = assistantIds.map(id => ({ id, agent_name: "...loading" }));
-        setVapiAgents(placeholderVapi);
-        if (platform === "vapi") setAgents(placeholderVapi);
-
-        // Fetch real names
-        const fetchedDetails = await Promise.all(
-          assistantIds.map(async (id) => {
-            try {
-              const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
-                headers: {
-                  Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
-                },
-              });
-              if (!res.ok) throw new Error(`Failed to fetch assistant ${id}`);
-              return await res.json();
-            } catch (err) {
-              console.error(`❌ Error fetching Vapi assistant ${id}:`, err);
-              return null;
-            }
-          })
-        );
-
-        const finalVapiAgents = fetchedDetails
-          .filter((a) => a !== null)
-          .map((a) => ({ id: a.id, agent_name: a.name }));
-
-        setVapiAgents(finalVapiAgents);
-        if (platform === "vapi") {
-          setAgents(finalVapiAgents);
-          const firstId = finalVapiAgents[0]?.id || "-";
-          setSelectedAgentId(firstId); // ✅ Set only once, after final data is in
-        }
-      } catch (err) {
-        console.error("❌ Error fetching Vapi agents:", err);
       }
-    };
 
-    fetchVapiAgents();
+      const placeholderAgents = assistantIds.map((id) => ({ id, agent_name: "...loading" }));
+      setVapiAgents(placeholderAgents);
+      if (platform === "vapi") setAgents(placeholderAgents);
+
+      const fullDetails = await Promise.all(
+        assistantIds.map(async (id) => {
+          try {
+            const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
+              headers: {
+                Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
+              },
+            });
+            if (!res.ok) throw new Error(`Fail on ${id}`);
+            return await res.json();
+          } catch (err) {
+            console.error("Fetch failed:", err);
+            return null;
+          }
+        })
+      );
+
+      const cleaned = fullDetails.filter(Boolean).map((a) => ({ id: a.id, agent_name: a.name }));
+      setVapiAgents(cleaned);
+      if (platform === "vapi") {
+        setAgents(cleaned);
+        setSelectedAgentId(cleaned[0]?.id || "-");
+      }
+    } catch (err) {
+      console.error("❌ Agent fetch error:", err);
+    }
+  };
+
+
+
+  useEffect(() => {
+    fetchVapiAgents(selectedClientId || null);
+  }, [selectedClientId]);
+
+
+  useEffect(() => {
+    const isAdminStored = localStorage.getItem('isAdmin');
+    if (isAdminStored) {
+      setIsAdmin(JSON.parse(isAdminStored));
+    }
   }, []);
 
 
@@ -226,18 +300,6 @@ export default function CallLogs() {
       return [];
     }
   };
-
-
-  // useEffect(() => {
-  //   const selectedSet = platform === "vapi" ? vapiAgents : bolnaAgents;
-  //   setAgents(selectedSet);
-  //   setSelectedAgentId(selectedSet[0]?.id || "-");
-  // }, [platform, vapiAgents, bolnaAgents]);
-
-
-
-
-
 
 
   const fetchBatchCallDetails = async (executionIds) => {
@@ -264,30 +326,6 @@ export default function CallLogs() {
   };
 
 
-  // const fetchCallDetails = async () => {
-  //   setLoading(true);
-  //   setError(null);
-
-  //   try {
-  //     const executionIds = await fetchExecutionIds();
-  //     if (executionIds.length === 0) {
-  //       setLoading(false);
-  //       return;
-  //     }
-
-  //     const firstBatch = executionIds.slice(0, 10);
-  //     const queue = executionIds.slice(10);
-  //     const firstCalls = await fetchBatchCallDetails(firstBatch);
-
-  //     setExecutions(firstCalls);
-  //     setExecutionQueue(queue);
-  //     setLoading(false);
-  //   } catch (error) {
-  //     console.error("❌ Error fetching call logs:", error);
-  //     setError(error.message);
-  //     setLoading(false);
-  //   }
-  // };
 
 
   const fetchCallDetails = async () => {
@@ -398,10 +436,17 @@ export default function CallLogs() {
         <div className="flex items-center flex-wrap gap-4 mb-6">
 
 
-          {/* <div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1"></label>
+            <Dropdown
+              value={selectedClientId}
+              onChange={setSelectedClientId}
+              placeholder="Select a Client"
+            />
+          </div>
 
 
-          {/* Agent Dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
             <select
