@@ -137,7 +137,7 @@ export default async function handler(req, res) {
           );
 
           if (!bookingResult.success) {
-            await sendWhatsappSlotConfirmation(customerNumber, bookingResult.suggestedSlots, companyName, timezone);
+            const whatsAppResponse = await sendWhatsappSlotConfirmation(customerNumber, bookingResult.suggestedSlots, companyName, timezone);
             const messageId = whatsAppResponse?.metaResponse?.messages?.[0]?.id || null;
             const userSlotsCollection = db.collection("user_slots");
             await userSlotsCollection.insertOne({
@@ -235,7 +235,7 @@ export default async function handler(req, res) {
               console.warn(`📄 No brochures found for assistantId ${assistantId}`);
             } else {
               for (const pdf of pdfDocs) {
-                const result = await sendingWhatsapp(customerNumber, pdf.url, companyName, companyPhone);
+                const result = await sendingWhatsapp(customerNumber, pdf.url, pdf.name, companyName, companyPhone);
                 if (result?.status === "error") {
                   console.warn(`❌ Failed to send brochure to ${customerNumber}:`, result.error);
                 } else {
@@ -261,7 +261,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
-
 
 
 

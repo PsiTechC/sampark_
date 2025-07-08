@@ -32,7 +32,7 @@ const Sidebar = ({ clientId }) => {
 
         // Only show alert if it's truly unexpected
         if (typeof window !== "undefined") {
-          alert("Error loading Vapi agents. Please try again later.");
+          alert("Error loading Assistants. Please try again later.");
         }
       }
     };

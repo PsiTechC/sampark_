@@ -152,64 +152,6 @@ export default function CallLogs() {
   }, []);
 
 
-  // useEffect(() => {
-  //   const fetchVapiAgents = async () => {
-  //     try {
-  //       let assistantIds = [];
-  //       const cached = localStorage.getItem("assistant_ids");
-
-  //       if (cached) {
-  //         assistantIds = JSON.parse(cached);
-  //       } else {
-  //         const resMapping = await fetch("/api/map/getUserAgents");
-  //         const mappingData = await resMapping.json();
-  //         if (Array.isArray(mappingData.assistants)) {
-  //           assistantIds = mappingData.assistants;
-  //           localStorage.setItem("assistant_ids", JSON.stringify(assistantIds));
-  //         }
-  //       }
-
-  //       // Show loading placeholders
-  //       const placeholderVapi = assistantIds.map(id => ({ id, agent_name: "...loading" }));
-  //       setVapiAgents(placeholderVapi);
-  //       if (platform === "vapi") setAgents(placeholderVapi);
-
-  //       // Fetch real names
-  //       const fetchedDetails = await Promise.all(
-  //         assistantIds.map(async (id) => {
-  //           try {
-  //             const res = await fetch(`https://api.vapi.ai/assistant/${id}`, {
-  //               headers: {
-  //                 Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN_VAPI}`,
-  //               },
-  //             });
-  //             if (!res.ok) throw new Error(`Failed to fetch assistant ${id}`);
-  //             return await res.json();
-  //           } catch (err) {
-  //             console.error(`❌ Error fetching Vapi assistant ${id}:`, err);
-  //             return null;
-  //           }
-  //         })
-  //       );
-
-  //       const finalVapiAgents = fetchedDetails
-  //         .filter((a) => a !== null)
-  //         .map((a) => ({ id: a.id, agent_name: a.name }));
-
-  //       setVapiAgents(finalVapiAgents);
-  //       if (platform === "vapi") {
-  //         setAgents(finalVapiAgents);
-  //         const firstId = finalVapiAgents[0]?.id || "-";
-  //         setSelectedAgentId(firstId); // ✅ Set only once, after final data is in
-  //       }
-  //     } catch (err) {
-  //       console.error("❌ Error fetching Vapi agents:", err);
-  //     }
-  //   };
-
-  //   fetchVapiAgents();
-  // }, []);
-
   const fetchVapiAgents = async (clientId = null) => {
     try {
       let assistantIds = [];

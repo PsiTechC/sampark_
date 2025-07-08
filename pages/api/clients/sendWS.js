@@ -3,8 +3,6 @@ import CorsMiddleware from "../../../lib/cors-middleware";
 import {sendingWhatsapp} from '../../../lib/appointment_noti/sendingWhatsapp'
 
 
-
-
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method Not Allowed" });
@@ -95,14 +93,13 @@ export default async function handler(req, res) {
         let allSent = true;
 
         for (const pdf of pdfDocs) {
-          const result = await sendingWhatsapp(phone, pdf.url, companyName, companyPhone);
+          const result = await sendingWhatsapp(phone, pdf.url, pdf.name, companyName, companyPhone);
           if (result.status === "error") {
             allSent = false;
             console.warn(`❌ Failed to send ${pdf.name} to ${phone}:`, result.error);
           }
         }
         
-        // ✅ After attempting all PDFs
         console.log(`📤 Finished brochure attempts for call ${callId}`);
         await whatsappCollection.updateOne(
           { assistantId },

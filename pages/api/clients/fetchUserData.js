@@ -3,16 +3,14 @@ import { connectToDatabase } from "../../../lib/db";
 import CorsMiddleware from "../../../lib/cors-middleware";
 import { DateTime } from "luxon";
 
-
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 
-
 function cleanEmail(email) {
   return email
-    .replace(/\s+/g, '') // remove spaces
+    .replace(/\s+/g, '')
     .replace(/\s?dot\s?/gi, '.')
     .replace(/\s?at\s?/gi, '@');
 }
@@ -180,7 +178,9 @@ export default async function handler(req, res) {
           
           - assistantId: the assistant ID
           - id: the call ID
-          - name: the user's full name (just the name of the customer NOT THE AI ASSISTANT NAME)
+          - name: the user's full name (just the name of the customer, NOT THE AI ASSISTANT NAME).  
+          If the name is spoken in another language (e.g., Hindi, Spanish), translate the name to its **closest English transliteration** or **spelling as the user would typically write it in English**.
+       
           - email: a valid email address. If the user spells it (e.g., "a dot b at g m a i l dot com"), convert it into a proper format like "ab@gmail.com". Users may also say their email in parts, such as: "My email address is s a n k e t double k, a p, double o, r 0 7 at Gmail dot com." Make sure to correctly interpret "double" as repeating the following letter (e.g., "double k" → "kk"). Do NOT return email addresses with dots between each character (e.g., "a.b.c.d").
           - phone: convert spoken formats like "nine one triple eight" or "nine one three one double eight" into digits, like "9188" or "913188". Remove spaces, and return only digits. Do NOT return masked values like "9131XXX".
 
@@ -226,6 +226,7 @@ export default async function handler(req, res) {
           - If the year is in the future (e.g., 2026), preserve it as is.
           
           - purpose: the purpose of the meeting or call, if mentioned (e.g. "site visit", "demo discussion")
+            If the purpose is mentioned in another language (e.g., Hindi, Spanish), **translate it into English** while preserving the meaning (e.g., "संपत्ति में रुचि" → "interested in property", "मेरा बजट 10 करोड़ है" → "my budget is 10 crores").
             If the conversation involves property, real estate, apartments, houses, or similar interests — and the user mentions a budget, include that in the purpose.
             Examples: "property interest with budget 1cr", "real estate inquiry, budget $500K", "interested in flat, budget range 80L–1cr"
 
@@ -241,7 +242,17 @@ export default async function handler(req, res) {
              It was only suggested by the AI and never agreed to by the user
              The user says they’re unsure or gives vague replies like “I’ll decide later” or “not sure”
 
-          - sentiment: classify sentiment based on the conversation and the assistant's system prompt. Use:
+         - isUserBusy: true if the user sounds busy, distracted, or unable to engage in the conversation. Examples:
+           - They explicitly say they are busy ("I'm busy", "Can't talk now", "call me later").
+           - They avoid providing details, or postpone the conversation ("not now", "later", "catch up some other time").
+           - They say "call me back later", "ping me later", or similar.
+           - They give vague replies or no actionable information due to being preoccupied.
+
+           If there are no such indications, return false.
+
+           Respond strictly as a boolean: true or false.
+  
+         - sentiment: classify sentiment based on the conversation and the assistant's system prompt. Use:
             - positive
             - negative           
             - neutral 
@@ -297,7 +308,8 @@ export default async function handler(req, res) {
             "callTime": "<date_and_time_or_->",
             "timezone": "<IANA_zone_or_->",
             "purpose": "<purpose_or_->",
-            "sentiment": "positive" | "negative" | "neutral" | "no_response"
+            "sentiment": "positive" | "negative" | "neutral" | "no_response",
+            "isUserBusy": true | false
           }
           
 
@@ -393,6 +405,7 @@ export default async function handler(req, res) {
                     purpose: result.purpose,
                     sentiment: result.sentiment,
                     summary: call.summary || "-",
+                    isUserBusy: result.isUserBusy,
                     customerNumber: userPhoneNumber,
                     duration: parseFloat(durationInSeconds.toFixed(2)),
                     cost: call.cost ?? 0

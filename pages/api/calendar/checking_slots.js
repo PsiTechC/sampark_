@@ -333,7 +333,7 @@ export default async function handler(req, res) {
           console.warn(`📄 No brochures found for assistantId ${assistantId}`);
         } else {
           for (const pdf of pdfDocs) {
-            const result = await sendingWhatsapp(phone, pdf.url, companyName, companyPhone);
+            const result = await sendingWhatsapp(phone, pdf.url,pdf.name, companyName, companyPhone);
             if (result?.status === "error") {
               console.warn(`❌ Failed to send brochure to ${phone}:`, result.error);
             } else {
